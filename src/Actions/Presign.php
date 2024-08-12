@@ -10,6 +10,7 @@ use Conquest\Upload\Concerns\HasMinSize;
 use Conquest\Upload\Http\DTOs\Presigned;
 use Conquest\Upload\Http\DTOs\UploadData;
 use Conquest\Upload\Concerns\HasDirectory;
+use Conquest\Upload\Concerns\HasModelProperty;
 
 class Presign
 {
@@ -20,7 +21,7 @@ class Presign
     use HasMinSize;
     use HasAccepts;
     use HasDirectory;
-    // use HasModelProperty;
+    use HasModelProperty;
     // use GeneratesFileName;
 
     public function __construct() {}

@@ -12,5 +12,5 @@ return [
     'min_size' => 0,
     'accepts' => 'image/*',
     'directory' => 'uploads',
-    // 'model' => [Upload::class, 'file']
+    // 'model' => [Upload::class, 'path']
 ];
