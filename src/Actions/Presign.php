@@ -2,20 +2,32 @@
 
 namespace Conquest\Upload\Actions;
 
+use Conquest\Upload\Http\DTOs\Presigned;
+
 class Presign
 {
+    // use HasDisk;
+    // use HasExpires;
+    // use HasMultiple;
+    // use HasMaxSize;
+    // use HasMinSize;
+    // use HasAccepts;
+    // use HasDirectory;
+    // use HasModelProperty;
+    // use GeneratesFileName;
+
     public function __construct() {}
-    
-    public static function post(UploadData $uploadData): static
+
+    public static function make(): static
     {
-        return resolve(static::class, [
-            'location' => $uploadData->location,
-            'name' => $uploadData->name,
-            'key' => $uploadData->key,
-            'type' => $uploadData->type,
-            'extension' => $uploadData->extension,
-            'url' => $uploadData->url,
-            'bytes' => $uploadData->bytes,
-        ]);
+        return resolve(static::class);
+    }
+    
+    /**
+     * @return
+     */
+    public static function post(UploadData $uploadData): Presigned
+    {
+        
     }
 }

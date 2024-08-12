@@ -2,6 +2,8 @@
 
 namespace Conquest\Upload\Http\Controllers;
 
+use Illuminate\Http\Testing\MimeType;
+
 class PresignController
 {
 
