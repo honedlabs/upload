@@ -14,6 +14,7 @@ use Conquest\Upload\Concerns\HasMinSize;
 use Conquest\Upload\Concerns\HasModelProperty;
 use Conquest\Upload\Http\DTOs\Presigned;
 use Conquest\Upload\Http\DTOs\UploadData;
+use Illuminate\Support\Facades\Storage;
 
 class Presign
 {
@@ -38,6 +39,7 @@ class Presign
     public static function handle(UploadData $uploadData)
     {
         // return Presigned::make(request());
+        // Storage::temporaryUploadUrl()
 
     }
 }
