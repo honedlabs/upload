@@ -3,16 +3,19 @@
 namespace Conquest\Upload\Actions;
 
 use Conquest\Upload\Concerns\HasDisk;
+use Conquest\Upload\Concerns\HasExpires;
+use Conquest\Upload\Concerns\HasMaxSize;
+use Conquest\Upload\Concerns\HasMinSize;
 use Conquest\Upload\Http\DTOs\Presigned;
 use Conquest\Upload\Http\DTOs\UploadData;
 
 class Presign
 {
     use HasDisk;
-    // use HasExpires;
+    use HasExpires;
     // use HasMultiple;
-    // use HasMaxSize;
-    // use HasMinSize;
+    use HasMaxSize;
+    use HasMinSize;
     // use HasAccepts;
     // use HasDirectory;
     // use HasModelProperty;
