@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Conquest\Upload\Concerns;
 
-trait HasModel
+trait HasModelProperty
 {
     /**
      * @var class-string|null

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Conquest\Upload\Actions;
 
 use Conquest\Upload\Concerns\HasDisk;
@@ -10,6 +12,7 @@ use Conquest\Upload\Concerns\HasMinSize;
 use Conquest\Upload\Http\DTOs\Presigned;
 use Conquest\Upload\Http\DTOs\UploadData;
 use Conquest\Upload\Concerns\HasDirectory;
+use Conquest\Upload\Concerns\HasGenerator;
 use Conquest\Upload\Concerns\HasModelProperty;
 
 class Presign
@@ -22,7 +25,7 @@ class Presign
     use HasAccepts;
     use HasDirectory;
     use HasModelProperty;
-    // use GeneratesFileName;
+    use HasGenerator;
 
     public function __construct() {}
 
