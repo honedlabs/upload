@@ -5,41 +5,45 @@ namespace Conquest\Upload\Enums;
 enum ContentType: string
 {
     /** Type sets */
-    const Image = 'image';
-    const Video = 'video';
-    const Application = 'application';
-    const Text = 'text';
-    const Audio = 'audio';
-    
+    case Image = 'image';
+    case Video = 'video';
+    case Application = 'application';
+    case Text = 'text';
+    case Audio = 'audio';
+
     /** Microsoft types */
-    const Word = 'word';
-    const Powerpoint = 'ppt';
-    const Excel = 'excel';
+    case Word = 'word';
+    case Powerpoint = 'ppt';
+    case Excel = 'excel';
 
     /** Image types */
-    const Jpeg = 'jpeg';
-    const Png = 'png';
-    const Gif = 'gif';
-    const Webp = 'webp';
-    const Svg = 'svg';
-    const Avif = 'avif';
-    
-    /** Video types */
-    const Mp4 = 'video/mp4';
-    const Mpeg = 'video/mpeg';
-    
-    /** Audio types */
-    const Mp3 = 'audio/mpeg';
-    const Wav = 'audio/wav';
-    const Avi = 'avi';
+    case Jpeg = 'jpeg';
+    case Png = 'png';
+    case Gif = 'gif';
+    case Webp = 'webp';
+    case Svg = 'svg';
+    case Avif = 'avif';
 
+    /** Video types */
+    case Mp4 = 'mp4';
+    case Mpeg = 'mpeg';
+
+    /** Audio types */
+    case Mp3 = 'mp3';
+    case Wav = 'wav';
+    case Avi = 'avi';
 
     /** Other */
-    const Zip = 'zip';
-    const Pdf = 'pdf';
-    const Json = 'json';
-    const Csv = 'csv';
+    case Zip = 'zip';
+    case Pdf = 'pdf';
+    case Json = 'json';
+    case Csv = 'csv';
 
+    /**
+     * Retrieve the mime types for the given content type.
+     *
+     * @return array<string>
+     */
     public function getMimeTypes(): array
     {
         return match ($this) {
@@ -66,8 +70,6 @@ enum ContentType: string
             self::Svg => ['image/svg+xml'],
             self::Avi => ['video/x-msvideo'],
             self::Avif => ['image/avif'],
-            default => []
         };
     }
-
 }

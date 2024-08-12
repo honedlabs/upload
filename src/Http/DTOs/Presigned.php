@@ -14,7 +14,7 @@ class Presigned
         protected readonly string $extension,
         protected readonly string $url,
         protected readonly int $bytes,
-    ) { }
+    ) {}
 
     public function make(Request $request): static
     {

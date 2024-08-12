@@ -15,7 +15,7 @@ trait HasAccepts
         return $this;
     }
 
-    public function setAccepts(array|null $accepts): void
+    public function setAccepts(?array $accepts): void
     {
         if (is_null($accepts)) {
             return;

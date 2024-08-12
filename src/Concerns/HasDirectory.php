@@ -6,7 +6,7 @@ namespace Conquest\Upload\Concerns;
 
 trait HasDirectory
 {
-    protected string|null $directory = null;
+    protected ?string $directory = null;
 
     public function directory(string $directory): static
     {
@@ -15,7 +15,7 @@ trait HasDirectory
         return $this;
     }
 
-    public function setDirectory(string|null $directory): void
+    public function setDirectory(?string $directory): void
     {
         if (is_null($directory)) {
             return;

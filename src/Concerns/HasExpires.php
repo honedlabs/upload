@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace Conquest\Upload\Concerns;
 
-
 trait HasExpires
 {
-    protected int|null $expires = null;
+    protected ?int $expires = null;
 
     public function expires(int $expires): static
     {
@@ -16,7 +15,7 @@ trait HasExpires
         return $this;
     }
 
-    public function setExpires(int|null $expires): void
+    public function setExpires(?int $expires): void
     {
         if (is_null($expires)) {
             return;

@@ -2,9 +2,9 @@
 
 namespace Conquest\Upload\Tests;
 
+use Conquest\Upload\UploadServiceProvider;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Orchestra\Testbench\TestCase as Orchestra;
-use Conquest\Upload\UploadServiceProvider;
 
 class TestCase extends Orchestra
 {

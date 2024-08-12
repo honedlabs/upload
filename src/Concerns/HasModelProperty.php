@@ -9,21 +9,19 @@ trait HasModelProperty
     /**
      * @var class-string|null
      */
-    protected string|null $model = null;
+    protected ?string $model = null;
 
-    /**
-     * @var string|null
-     */
-    protected string|null $property = null;
+    protected ?string $property = null;
 
-    public function model(string $model, string $attribute): static
+    public function model(string $model, string $property): static
     {
         $this->setModel($model);
+        $this->setProperty($property);
 
         return $this;
     }
 
-    public function setModel(string|null $model): void
+    public function setModel(?string $model): void
     {
         if (is_null($model)) {
             return;
@@ -31,7 +29,7 @@ trait HasModelProperty
         $this->model = $model;
     }
 
-    public function setProperty(string|null $property): void
+    public function setProperty(?string $property): void
     {
         if (is_null($property)) {
             return;
@@ -60,7 +58,7 @@ trait HasModelProperty
     }
 
     /**
-     * @return array<string, string>
+     * @return array{string, string}
      */
     public function getModelProperty(): array
     {

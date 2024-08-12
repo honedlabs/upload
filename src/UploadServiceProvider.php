@@ -17,5 +17,5 @@ class UploadServiceProvider extends PackageServiceProvider
         $package
             ->name('upload')
             ->hasConfigFile();
-        }
+    }
 }

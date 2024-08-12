@@ -6,7 +6,7 @@ namespace Conquest\Upload\Concerns;
 
 trait HasDisk
 {
-    protected string|null $disk = null;
+    protected ?string $disk = null;
 
     public function disk(string $disk): static
     {
@@ -15,7 +15,7 @@ trait HasDisk
         return $this;
     }
 
-    public function setDisk(string|null $disk): void
+    public function setDisk(?string $disk): void
     {
         if (is_null($disk)) {
             return;

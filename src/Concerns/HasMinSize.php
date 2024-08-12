@@ -6,7 +6,7 @@ namespace Conquest\Upload\Concerns;
 
 trait HasMinSize
 {
-    protected int|null $minSize = null;
+    protected ?int $minSize = null;
 
     public function minSize(int $minSize): static
     {
@@ -15,7 +15,7 @@ trait HasMinSize
         return $this;
     }
 
-    public function setMinSize(int|null $minSize): void
+    public function setMinSize(?int $minSize): void
     {
         if (is_null($minSize)) {
             return;

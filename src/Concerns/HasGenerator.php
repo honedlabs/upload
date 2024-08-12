@@ -9,12 +9,16 @@ use InvalidArgumentException;
 trait HasGenerator
 {
     const Name = 'name';
+
     const Uuid = 'uuid';
+
     const Ulid = 'ulid';
+
     const Id = 'id';
+
     const UserId = 'user_id';
 
-    protected string $generator = config('conquest-upload.generator');
+    protected ?string $generator = null;
 
     /**
      * Alias for generator
@@ -23,43 +27,50 @@ trait HasGenerator
     {
         return $this->generator($generator);
     }
-    
+
     /**
      * Set how the filename is to be generated
-     * 
-     * @param string $generator
-     * @return static
+     *
      * @throws InvalidArgumentException
      */
     public function generator(string $generator): static
     {
         $this->setGenerator($generator);
-    
+
         return $this;
     }
 
     /**
      * Set how the filename is to be generated
-     * 
-     * @param string|null $generator
+     *
      * @throws InvalidArgumentException
      */
-    public function setGenerator(string|null $generator): void
+    public function setGenerator(?string $generator): void
     {
         if (is_null($generator)) {
             return;
         }
 
-        if (!in_array($generator, [self::Name, self::Uuid, self::Ulid, self::Id, self::UserId])) {
+        if (! in_array($generator, [self::Name, self::Uuid, self::Ulid, self::Id, self::UserId])) {
             throw new InvalidArgumentException('Provided file name method is not supported.');
         }
 
         $this->generator = $generator;
     }
 
+    public function lacksGenerator(): bool
+    {
+        return is_null($this->generator);
+    }
+
+    public function hasGenerator(): bool
+    {
+        return ! $this->lacksGenerator();
+    }
+
     public function getGenerator(): string
     {
-        return $this->generator;
+        return $this->generator ?? config('conquest-upload.generator');
     }
 
     public function uuid(): static

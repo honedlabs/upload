@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Storage;
 class FileUrl implements CastsAttributes
 {
     public const DISK = 's3';
+
     /**
      * Cast the given value.
      *

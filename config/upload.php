@@ -2,8 +2,6 @@
 
 // config for Conquest/Upload
 
-use Illuminate\Support\Facades\Storage;
-
 return [
     'disk' => 's3',
     'expires' => 60,

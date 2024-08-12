@@ -6,7 +6,7 @@ namespace Conquest\Upload\Concerns;
 
 trait HasMaxSize
 {
-    protected int|null $maxSize = null;
+    protected ?int $maxSize = null;
 
     public function maxSize(int $maxSize): static
     {
@@ -15,7 +15,7 @@ trait HasMaxSize
         return $this;
     }
 
-    public function setMaxSize(int|null $maxSize): void
+    public function setMaxSize(?int $maxSize): void
     {
         if (is_null($maxSize)) {
             return;
