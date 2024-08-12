@@ -2,12 +2,13 @@
 
 namespace Conquest\Upload\Actions;
 
+use Conquest\Upload\Concerns\HasDisk;
 use Conquest\Upload\Http\DTOs\Presigned;
 use Conquest\Upload\Http\DTOs\UploadData;
 
 class Presign
 {
-    // use HasDisk;
+    use HasDisk;
     // use HasExpires;
     // use HasMultiple;
     // use HasMaxSize;
