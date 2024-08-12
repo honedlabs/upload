@@ -4,20 +4,18 @@ declare(strict_types=1);
 
 namespace Conquest\Upload\Concerns;
 
-use Closure;
-
 trait HasDisk
 {
     protected string|null $disk = null;
 
-    public function disk(string|Closure $disk): static
+    public function disk(string $disk): static
     {
         $this->setDisk($disk);
 
         return $this;
     }
 
-    public function setDisk(string|Closure|null $disk): void
+    public function setDisk(string|null $disk): void
     {
         if (is_null($disk)) {
             return;
