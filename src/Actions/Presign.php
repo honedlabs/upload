@@ -3,11 +3,13 @@
 namespace Conquest\Upload\Actions;
 
 use Conquest\Upload\Concerns\HasDisk;
+use Conquest\Upload\Concerns\HasAccepts;
 use Conquest\Upload\Concerns\HasExpires;
 use Conquest\Upload\Concerns\HasMaxSize;
 use Conquest\Upload\Concerns\HasMinSize;
 use Conquest\Upload\Http\DTOs\Presigned;
 use Conquest\Upload\Http\DTOs\UploadData;
+use Conquest\Upload\Concerns\HasDirectory;
 
 class Presign
 {
@@ -16,8 +18,8 @@ class Presign
     // use HasMultiple;
     use HasMaxSize;
     use HasMinSize;
-    // use HasAccepts;
-    // use HasDirectory;
+    use HasAccepts;
+    use HasDirectory;
     // use HasModelProperty;
     // use GeneratesFileName;
 
@@ -31,9 +33,9 @@ class Presign
     /**
      * @return
      */
-    public static function post(UploadData $uploadData): Presigned
+    public static function handle(UploadData $uploadData)
     {
-        return Presigned::make(request());
+        // return Presigned::make(request());
         
     }
 }
