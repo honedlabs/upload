@@ -19,10 +19,10 @@ class Presign
 {
     use HasAccepts;
     use HasDirectory;
-
     use HasDisk;
     use HasExpires;
     use HasGenerator;
+
     // use HasMultiple;
     use HasMaxSize;
     use HasMinSize;
