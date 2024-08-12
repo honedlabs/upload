@@ -2,8 +2,6 @@
 
 namespace Conquest\Upload\Enums;
 
-use Illuminate\Database\Eloquent\Casts\Json;
-
 enum ContentType: string
 {
     /** Type sets */
@@ -31,7 +29,7 @@ enum ContentType: string
     const Mpeg = 'video/mpeg';
     
     /** Audio types */
-    const Mp3 = 'audio/mp3';
+    const Mp3 = 'audio/mpeg';
     const Wav = 'audio/wav';
     const Avi = 'avi';
 
@@ -68,8 +66,6 @@ enum ContentType: string
             self::Svg => ['image/svg+xml'],
             self::Avi => ['video/x-msvideo'],
             self::Avif => ['image/avif'],
-
-
             default => []
         };
     }

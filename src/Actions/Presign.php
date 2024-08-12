@@ -3,6 +3,7 @@
 namespace Conquest\Upload\Actions;
 
 use Conquest\Upload\Http\DTOs\Presigned;
+use Conquest\Upload\Http\DTOs\UploadData;
 
 class Presign
 {
@@ -28,6 +29,7 @@ class Presign
      */
     public static function post(UploadData $uploadData): Presigned
     {
+        return Presigned::make(request());
         
     }
 }

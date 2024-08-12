@@ -4,7 +4,7 @@ namespace Conquest\Upload\Http\DTOs;
 
 use Illuminate\Http\Request;
 
-class Presigned
+class UploadData
 {
     public function __construct(
         protected readonly string $location,

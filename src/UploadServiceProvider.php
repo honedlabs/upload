@@ -4,7 +4,6 @@ namespace Conquest\Upload;
 
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
-use Conquest\Upload\Commands\UploadCommand;
 
 class UploadServiceProvider extends PackageServiceProvider
 {
@@ -17,9 +16,6 @@ class UploadServiceProvider extends PackageServiceProvider
          */
         $package
             ->name('upload')
-            ->hasConfigFile()
-            ->hasViews()
-            ->hasMigration('create_upload_table')
-            ->hasCommand(UploadCommand::class);
-    }
+            ->hasConfigFile();
+        }
 }
