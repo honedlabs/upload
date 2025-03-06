@@ -1,22 +1,15 @@
 <?php
 
-namespace Conquest\Upload\Tests;
+declare(strict_types=1);
 
-use Conquest\Upload\UploadServiceProvider;
-use Illuminate\Database\Eloquent\Factories\Factory;
+namespace Honed\Upload\Tests;
+
+use Honed\Upload\Tests\Fixtures\Controller;
+use Honed\Upload\UploadServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
 
 class TestCase extends Orchestra
 {
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        Factory::guessFactoryNamesUsing(
-            fn (string $modelName) => 'Conquest\\Upload\\Database\\Factories\\'.class_basename($modelName).'Factory'
-        );
-    }
-
     protected function getPackageProviders($app)
     {
         return [
@@ -24,13 +17,13 @@ class TestCase extends Orchestra
         ];
     }
 
+    protected function defineRoutes($router)
+    {
+        $router->post('/upload', [Controller::class, 'upload']);
+    }
+
     public function getEnvironmentSetUp($app)
     {
         config()->set('database.default', 'testing');
-
-        /*
-        $migration = include __DIR__.'/../database/migrations/create_upload_table.php.stub';
-        $migration->up();
-        */
     }
 }

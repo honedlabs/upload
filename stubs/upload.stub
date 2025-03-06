@@ -1,0 +1,15 @@
+<?php
+
+declare(strict_types=1);
+
+namespace {{ namespace }};
+
+use Honed\Upload\Upload;
+
+final class {{ class }} extends Upload
+{
+    public function setUp()
+    {
+        //
+    }
+}

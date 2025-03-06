@@ -1,21 +1,39 @@
 <?php
 
-namespace Conquest\Upload;
+declare(strict_types=1);
 
-use Spatie\LaravelPackageTools\Package;
-use Spatie\LaravelPackageTools\PackageServiceProvider;
+namespace Honed\Upload;
 
-class UploadServiceProvider extends PackageServiceProvider
+use Honed\Upload\Console\Commands\UploadMakeCommand;
+use Illuminate\Support\ServiceProvider;
+
+final class UploadServiceProvider extends ServiceProvider
 {
-    public function configurePackage(Package $package): void
+    /**
+     * Register services.
+     */
+    public function register(): void
     {
-        /*
-         * This class is a Package Service Provider
-         *
-         * More info: https://github.com/spatie/laravel-package-tools
-         */
-        $package
-            ->name('upload')
-            ->hasConfigFile();
+        $this->mergeConfigFrom(__DIR__.'/../config/upload.php', 'upload');
+    }
+
+    /**
+     * Bootstrap services.
+     */
+    public function boot(): void
+    {
+        $this->publishes([
+            __DIR__.'/../config/upload.php' => config_path('upload.php'),
+        ], 'config');
+
+        $this->publishes([
+            __DIR__.'/../stubs' => base_path('stubs'),
+        ], 'stubs');
+
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                UploadMakeCommand::class,
+            ]);
+        }
     }
 }

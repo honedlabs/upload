@@ -1,63 +1,61 @@
 {
-    "name": "conquest/upload",
-    "description": "Handle S3 presigned uploads",
+    "name": "honed/upload",
+    "description": "Upload files securely to S3 with a presigned POST with a fluent policy API.",
     "keywords": [
-        "Conquest",
+        "honed",
         "laravel",
-        "upload"
+        "upload",
+        "inertia"
     ],
-    "homepage": "https://github.com/conquest/upload",
+    "homepage": "https://github.com/honedlabs/upload",
     "license": "MIT",
     "authors": [
         {
             "name": "Joshua Wallace",
+            "homepage": "https://joshua-wallace.com",
             "email": "josh@joshua-wallace.com",
             "role": "Developer"
         }
     ],
     "require": {
         "php": "^8.2",
-        "illuminate/console": "^10.0||^11.0",
-        "illuminate/contracts": "^10.0||^11.0",
-        "illuminate/support": "^10.0||^11.0",
-        "league/flysystem-aws-s3-v3": "^3.0",
-        "spatie/laravel-package-tools": "^1.16"
+        "aws/aws-sdk-php": "^3.340",
+        "honed/core": "^0.7.0",
+        "illuminate/contracts": "^11.0||^12.0",
+        "illuminate/support": "^11.0||^12.0",
+        "pinkary-project/type-guard": "^0.1.0"
     },
     "require-dev": {
-        "larastan/larastan": "^2.9",
-        "laravel/dusk": "^8.2",
-        "laravel/pint": "^1.14",
-        "nunomaduro/collision": "^8.1.1||^7.10.0",
-        "orchestra/testbench": "^9.0.0||^8.22.0",
-        "orchestra/testbench-dusk": "^9.5",
-        "pestphp/pest": "^2.34",
-        "pestphp/pest-plugin-arch": "^2.7",
-        "pestphp/pest-plugin-laravel": "^2.3",
-        "phpstan/extension-installer": "^1.3",
-        "phpstan/phpstan-deprecation-rules": "^1.1",
-        "phpstan/phpstan-phpunit": "^1.3"
+        "larastan/larastan": "^3.0",
+        "laravel/pint": "^1.18",
+        "nunomaduro/collision": "^8.1",
+        "orchestra/testbench": "^9.0.0||^10.0.0",
+        "pestphp/pest": "^3.5.1",
+        "pestphp/pest-plugin-arch": "^3.0.0",
+        "phpstan/extension-installer": "^1.4.3",
+        "phpstan/phpstan-deprecation-rules": "^2.0.1",
+        "phpstan/phpstan-phpunit": "^2.0.3",
+        "pestphp/pest-plugin-laravel": "^3.0"
     },
     "autoload": {
         "psr-4": {
-            "Conquest\\Upload\\": "src/",
-            "Conquest\\Upload\\Database\\Factories\\": "database/factories/"
+            "Honed\\Upload\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Conquest\\Upload\\Tests\\": "tests/",
-            "Workbench\\App\\": "workbench/app/"
+            "Honed\\Upload\\Tests\\": "tests/"
         }
     },
     "scripts": {
         "post-autoload-dump": "@composer run prepare",
-        "clear": "@php vendor/bin/testbench package:purge-upload --ansi",
+        "clear": "@php vendor/bin/testbench package:purge-skeleton --ansi",
         "prepare": "@php vendor/bin/testbench package:discover --ansi",
         "build": [
             "@composer run prepare",
             "@php vendor/bin/testbench workbench:build --ansi"
         ],
-        "start": [
+        "serve": [
             "Composer\\Config::disableProcessTimeout",
             "@composer run build",
             "@php vendor/bin/testbench serve"
@@ -66,7 +64,6 @@
         "test": "vendor/bin/pest",
         "test-coverage": "vendor/bin/pest --coverage",
         "format": "vendor/bin/pint",
-        "artisan": "php ./vendor/bin/testbench",
         "check": [
             "@composer run analyse",
             "@composer run test",
@@ -83,11 +80,8 @@
     "extra": {
         "laravel": {
             "providers": [
-                "Conquest\\Upload\\UploadServiceProvider"
-            ],
-            "aliases": {
-                "Upload": "Conquest\\Upload\\Facades\\Upload"
-            }
+                "Honed\\Upload\\UploadServiceProvider"
+            ]
         }
     },
     "minimum-stability": "dev",
