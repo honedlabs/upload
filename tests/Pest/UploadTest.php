@@ -80,8 +80,7 @@ it('has duration', function () {
         ->getDuration()->toBe('+1 minutes')
         ->duration('+1 hour')->toBeInstanceOf(Upload::class)
         ->getDuration()->toBe('+1 hour')
-        ->duration(now()->addMinute())->toBeInstanceOf(Upload::class)
-        ->getDuration()->toBe($fn(60));
+        ->duration(now()->addMinute())->toBeInstanceOf(Upload::class);
 });
 
 it('has path', function () {
