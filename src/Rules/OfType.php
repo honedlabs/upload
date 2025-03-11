@@ -39,7 +39,7 @@ final class OfType implements ValidationRule
                 return;
             }
 
-            if (Str::is($type, $value)) {
+            if ($type === $value) {
                 return;
             }
         }

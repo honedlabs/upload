@@ -17,8 +17,6 @@ return [
 
     'disk' => 's3',
 
-    'bucket' => null,
-
     /*
     |--------------------------------------------------------------------------
     | File sizes
@@ -34,8 +32,8 @@ return [
     */
 
     'size' => [
-        'max' => null,
-        'min' => null,
+        'min' => 0,
+        'max' => 1024 ** 3, // 1GB
         'unit' => 'bytes',
     ],
 
@@ -49,7 +47,7 @@ return [
     | MIME types, such as 'image/png', or partial wildcards, such as 'image/'.
     */
 
-    'types' => [
+    'accepts' => [
 
     ],
 

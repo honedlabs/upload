@@ -8,18 +8,22 @@ use Aws\S3\PostObjectV4;
 use Aws\S3\S3Client;
 use Carbon\Carbon;
 use Honed\Core\Concerns\HasRequest;
+use Honed\Core\Primitive;
 use Honed\Upload\Rules\OfType;
-use Illuminate\Contracts\Support\Responsable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Support\Stringable;
 use Illuminate\Support\Traits\Conditionable;
 use Illuminate\Support\Traits\Macroable;
 use Illuminate\Support\Traits\Tappable;
 
-class Upload implements Responsable
+/**
+ * @extends \Honed\Core\Primitive<string,mixed>
+ */
+class Upload extends Primitive
 {
     use Conditionable;
     use HasRequest;
@@ -59,7 +63,7 @@ class Upload implements Responsable
      *
      * @var array<string>
      */
-    protected $types = [];
+    protected $accepts = [];
 
     /**
      * The duration of the presigned URL.
@@ -69,51 +73,40 @@ class Upload implements Responsable
     protected $duration;
 
     /**
-     * The bucket to upload the file to.
-     *
-     * @var string|null
-     */
-    protected $bucket;
-
-    /**
      * The path prefix to store the file in
      *
-     * @var string|null
+     * @var string|\Closure|null
      */
     protected $path;
 
     /**
      * The name of the file to be stored.
      *
-     * @var string|null
+     * @var string|\Closure|null
      */
     protected $name;
 
     /**
-     * The ACL to use for the file.
+     * The access control list to use for the file.
      *
      * @var string|null
      */
     protected $acl;
 
     /**
-     * Create a new upload instance.
+     * Set the file upload component to accept multiple files.
+     *
+     * @var bool
      */
-    public function __construct(
-        Request $request
-    ) {
-        $this->request($request);
-        $this->setUp();
-    }
+    protected $multiple = false;
 
     /**
-     * Set up the upload.
-     *
-     * @return void
+     * Create a new upload instance.
      */
-    protected function setUp()
+    public function __construct(Request $request)
     {
-        //
+        $this->request($request);
+        parent::__construct();
     }
 
     /**
@@ -140,14 +133,29 @@ class Upload implements Responsable
     }
 
     /**
-     * Get the disk to retrieve the S3 credentials from.
+     * Get the S3 disk to use for uploading files.
      *
      * @return string
      */
     public function getDisk()
     {
-        return $this->disk
-            ?? type(config('upload.disk', 's3'))->asString();
+        if (isset($this->disk)) {
+            return $this->disk;
+        }
+
+        return static::fallbackDisk();
+    }
+
+    /**
+     * Get the disk to use for uploading files from the config.
+     *
+     * @default 's3'
+     *
+     * @return string
+     */
+    public static function fallbackDisk()
+    {
+        return type(config('upload.disk', 's3'))->asString();
     }
 
     /**
@@ -199,7 +207,7 @@ class Upload implements Responsable
      */
     public function unit($unit)
     {
-        $this->unit = $unit;
+        $this->unit = \mb_strtolower($unit);
 
         return $this;
     }
@@ -251,8 +259,21 @@ class Upload implements Responsable
      */
     public function getUnit()
     {
-        return $this->unit
-            ?? type(config('upload.unit', 'bytes'))->asString();
+        if (isset($this->unit)) {
+            return $this->unit;
+        }
+
+        return static::fallbackUnit();
+    }
+
+    /**
+     * Get the file size unit to use from the config.
+     *
+     * @return 'bytes'|'kilobytes'|'megabytes'|'gigabytes'|string
+     */
+    public static function fallbackUnit()
+    {
+        return type(config('upload.unit', 'bytes'))->asString();
     }
 
     /**
@@ -260,17 +281,28 @@ class Upload implements Responsable
      *
      * @return int
      */
-    public function getMinSize()
+    public function getMinSize(bool $convert = true)
     {
-        /** @var int|null */
         $minSize = $this->minSize
-            ?? config('upload.size.min', null);
+            ?? static::fallbackMinSize();
 
-        if (\is_null($minSize)) {
-            return 0;
+        if ($convert) {
+            return $this->convertSize($minSize);
         }
 
-        return $this->convertSize($minSize);
+        return $minSize;
+    }
+
+    /**
+     * Get the minimum file size to upload in bytes from the config.
+     *
+     * @default 0
+     *
+     * @return int
+     */
+    public static function fallbackMinSize()
+    {
+        return type(config('upload.size.min', 0))->asInt();
     }
 
     /**
@@ -278,17 +310,28 @@ class Upload implements Responsable
      *
      * @return int
      */
-    public function getMaxSize()
+    public function getMaxSize(bool $convert = true)
     {
-        /** @var int|null */
         $maxSize = $this->maxSize
-            ?? config('upload.size.max', null);
+            ?? static::fallbackMaxSize();
 
-        if (\is_null($maxSize)) {
-            return PHP_INT_MAX;
+        if ($convert) {
+            return $this->convertSize($maxSize);
         }
 
-        return $this->convertSize($maxSize);
+        return $maxSize;
+    }
+
+    /**
+     * Get the maximum file size to upload in bytes from the config.
+     *
+     * @default 1GB
+     *
+     * @return int
+     */
+    public static function fallbackMaxSize()
+    {
+        return type(config('upload.size.max', 1024 ** 3))->asInt();
     }
 
     /**
@@ -296,7 +339,7 @@ class Upload implements Responsable
      *
      * @return int
      */
-    protected function convertSize(int $size)
+    public function convertSize(int $size)
     {
         return match ($this->getUnit()) {
             'kilobytes' => $size * 1024,
@@ -307,73 +350,77 @@ class Upload implements Responsable
     }
 
     /**
-     * Set the types of files to accept.
+     * Set the accepted file types.
      *
-     * @param  string|array<int,string>|\Illuminate\Support\Collection<int,string>  $types
+     * @param  string|array<int,string>|\Illuminate\Support\Collection<int,string>  $accepts
      * @return $this
      */
-    public function types($types)
+    public function accepts($accepts)
     {
-        if ($types instanceof Collection) {
-            $types = $types->all();
+        if ($accepts instanceof Collection) {
+            $accepts = $accepts->all();
         }
 
-        $this->types = Arr::wrap($types);
+        $this->accepts = \array_map(
+            static fn (string $type) => \str_replace('*', '', $type),
+            Arr::wrap($accepts)
+        );
 
         return $this;
     }
 
     /**
-     * Set the types of files to accept.
-     *
-     * @param  string|array<int,string>|\Illuminate\Support\Collection<int,string>  $types
-     * @return $this
-     */
-    public function accepts($types)
-    {
-        return $this->types($types);
-    }
-
-    /**
-     * Set the types of files to accept to all image MIME types.
+     * Set the accepted file types to all image MIME types.
      *
      * @return $this
      */
-    public function image()
+    public function acceptsImages()
     {
-        return $this->types('image/');
+        return $this->accepts('image/');
     }
 
     /**
-     * Set the types of files to accept to all video MIME types.
+     * Set the accepted file types to all video MIME types.
      *
      * @return $this
      */
-    public function video()
+    public function acceptsVideos()
     {
-        return $this->types('video/');
+        return $this->accepts('video/');
     }
 
     /**
-     * Set the types of files to accept to all audio MIME types.
+     * Set the accepted file types to all audio MIME types.
      *
      * @return $this
      */
-    public function audio()
+    public function acceptsAudio()
     {
-        return $this->types('audio/');
+        return $this->accepts('audio/');
     }
 
     /**
-     * Get the types of files to accept.
+     * Get the accepted file types.
      *
      * @return array<int,string>
      */
-    public function getTypes()
+    public function getAccepted()
     {
-        return empty($this->types)
-            ? type(config('upload.types', []))->asArray()
-            : $this->types;
+        if (empty($this->accepts)) {
+            return static::fallbackAccepted();
+        }
+
+        return $this->accepts;
+    }
+
+    /**
+     * Get the accepted file types from the config.
+     *
+     * @return array<int,string>
+     */
+    public static function fallbackAccepted()
+    {
+        return type(config('upload.types', []))->asArray();
     }
 
     /**
@@ -441,36 +488,24 @@ class Upload implements Responsable
 
         return match (true) {
             \is_string($duration) => $duration,
+
             \is_int($duration) => \sprintf('+%d seconds', $duration),
-            $duration instanceof Carbon => \sprintf('+%d seconds', \round(\abs($duration->diffInSeconds()))),
-            default => type(config('upload.expires', '+2 minutes'))->asString(),
+
+            $duration instanceof Carbon => \sprintf(
+                '+%d seconds', \round(\abs($duration->diffInSeconds()))
+            ),
+            default => static::fallbackDuration(),
         };
     }
 
     /**
-     * Set the bucket to upload the file to.
-     *
-     * @param  string  $bucket
-     * @return $this
-     */
-    public function bucket($bucket)
-    {
-        $this->bucket = $bucket;
-
-        return $this;
-    }
-
-    /**
-     * Get the bucket to upload the file to.
+     * Get the duration of the presigned URL from the config.
      *
      * @return string
      */
-    public function getBucket()
+    public static function fallbackDuration()
     {
-        return type($this->bucket
-            ?? config('upload.bucket', null)
-            ?? $this->getDiskConfig('bucket')
-        )->asString();
+        return type(config('upload.expires', '+2 minutes'))->asString();
     }
 
     /**
@@ -489,7 +524,7 @@ class Upload implements Responsable
     /**
      * Get the path to store the file at.
      *
-     * @return string|null
+     * @return string|\Closure|null
      */
     public function getPath()
     {
@@ -499,7 +534,7 @@ class Upload implements Responsable
     /**
      * Set the name, or method, of generating the name of the file to be stored.
      *
-     * @param  'same'|'uuid'|'random'|string  $name
+     * @param  'uuid'|\Closure|string  $name
      * @return $this
      */
     public function name($name)
@@ -510,41 +545,72 @@ class Upload implements Responsable
     }
 
     /**
-     * Get the name of the file to be stored.
+     * Get the name, or method, of generating the name of the file to be stored.
      *
-     * @return string|null
+     * @return 'uuid'|\Closure|string|null
      */
-    public function getGeneratedName()
+    public function getName()
     {
-        return match ($this->name) {
-            'uuid' => Str::uuid()->toString(),
-            'random' => Str::random(),
-            default => null,
-        };
+        return $this->name;
     }
 
     /**
      * Set the ACL to use for the file.
      *
-     * @param  string  $acl
+     * @param  string  $accessControlList
      * @return $this
      */
-    public function acl($acl)
+    public function acl($accessControlList)
     {
-        $this->acl = $acl;
+        $this->acl = $accessControlList;
 
         return $this;
     }
 
     /**
-     * Get the ACL to use for the file.
+     * Get the access control list to use for the file.
      *
      * @return string
      */
-    public function getAcl()
+    public function getAccessControlList()
     {
-        return $this->acl
-            ?? type(config('upload.acl', 'public-read'))->asString();
+        if (isset($this->acl)) {
+            return $this->acl;
+        }
+
+        return static::fallbackAccessControlList();
+    }
+
+    /**
+     * Get the access control list to use for the file from the config.
+     *
+     * @return string
+     */
+    public static function fallbackAccessControlList()
+    {
+        return type(config('upload.acl', 'public-read'))->asString();
+    }
+
+    /**
+     * Set the input to accept multiple files.
+     *
+     * @return $this
+     */
+    public function multiple()
+    {
+        $this->multiple = true;
+
+        return $this;
+    }
+
+    /**
+     * Determine if the input should accept multiple files.
+     *
+     * @return bool
+     */
+    public function isMultiple()
+    {
+        return $this->multiple;
     }
 
     /**
@@ -553,10 +619,10 @@ class Upload implements Responsable
      * @param  string  $key
      * @return array<string,mixed>
      */
-    protected function getFormInputs($key)
+    public function getFormInputs($key)
     {
         return [
-            'acl' => $this->getAcl(),
+            'acl' => $this->getAccessControlList(),
             'key' => $key,
         ];
     }
@@ -567,20 +633,27 @@ class Upload implements Responsable
      * @param  string  $key
      * @return array<int,array<int|string,mixed>>
      */
-    protected function getOptions($key)
+    public function getOptions($key)
     {
         $options = [
-            ['acl' => $this->getAcl()],
-            ['bucket' => $this->getBucket()],
-            ['$key' => $key],
+            ['eq', '$acl', $this->getAccessControlList()],
+            ['eq', '$bucket', $this->getBucket()],
+            ['eq', '$key', $key],
+            ['content-length-range', $this->getMinSize(), $this->getMaxSize()],
         ];
 
-        if (filled($this->getTypes())) {
-            $options[] = ['starts-with', '$Content-Type', ...$this->getTypes()];
-        }
+        $accepts = $this->getAccepted();
 
-        if (filled($this->getMinSize())) {
-            $options[] = ['content-length-range', $this->getMinSize(), $this->getMaxSize()];
+        if (filled($accepts)) {
+            // Remove any file extensions from the validator, instead using mime types
+            $accepts = \implode(',', \array_values(
+                \array_filter(
+                    $accepts,
+                    static fn (string $type) => ! \str_starts_with($type, '.')
+                )
+            ));
+
+            $options[] = ['starts-with', '$Content-Type', $accepts];
         }
 
         return $options;
@@ -591,7 +664,7 @@ class Upload implements Responsable
      *
      * @return mixed
      */
-    protected function getDiskConfig(string $key)
+    public function getDiskConfig(string $key)
     {
         return config(
             \sprintf('filesystems.disks.%s.%s', $this->getDisk(), $key)
@@ -603,7 +676,7 @@ class Upload implements Responsable
      *
      * @return \Aws\S3\S3Client
      */
-    protected function getClient()
+    public function getClient()
     {
         return new S3Client([
             'version' => 'latest',
@@ -616,17 +689,27 @@ class Upload implements Responsable
     }
 
     /**
+     * Get the bucket to use for uploading files.
+     *
+     * @return string
+     */
+    public function getBucket()
+    {
+        return type($this->getDiskConfig('bucket'))->asString();
+    }
+
+    /**
      * Validate the incoming request.
      *
      * @param  \Illuminate\Http\Request  $request
      * @return array<string,mixed>
      */
-    protected function validate($request)
+    public function validate($request)
     {
         return Validator::make(
             $request->all(),
             $this->getValidationRules(),
-            [],
+            $this->getValidationMessages(),
             $this->getValidationAttributes(),
         )->validate();
     }
@@ -636,15 +719,40 @@ class Upload implements Responsable
      *
      * @return array<string,array<int,mixed>>
      */
-    protected function getValidationRules()
+    public function getValidationRules()
     {
         $min = $this->getMinSize();
         $max = $this->getMaxSize();
 
         return [
             'name' => ['required', 'string', 'max:1024'],
-            'type' => ['required', new OfType($this->getTypes())],
+            'type' => ['required', new OfType($this->getAccepted())],
             'size' => ['required', 'integer', 'min:'.$min, 'max:'.$max],
+            'meta' => ['nullable'],
+        ];
+    }
+
+    /**
+     * Get the validation messages for file uploads.
+     *
+     * @return array<string,string>
+     */
+    public function getValidationMessages()
+    {
+        $min = $this->getMinSize(false);
+        $max = $this->getMaxSize(false);
+
+        return [
+            'size.min' => \sprintf(
+                'The :attribute must be larger than %d %s.',
+                $min,
+                $min === 1 ? rtrim($this->getUnit(), 's') : $this->getUnit()
+            ),
+            'size.max' => \sprintf(
+                'The :attribute must be smaller than %d %s.',
+                $max,
+                $max === 1 ? rtrim($this->getUnit(), 's') : $this->getUnit()
+            ),
         ];
     }
 
@@ -653,7 +761,7 @@ class Upload implements Responsable
      *
      * @return array<string,string>
      */
-    protected function getValidationAttributes()
+    public function getValidationAttributes()
     {
         return [
             'name' => 'file name',
@@ -669,23 +777,14 @@ class Upload implements Responsable
      */
     public function create()
     {
-        return $this->toResponse($this->getRequest());
-    }
+        $request = $this->getRequest();
 
-    /**
-     * Create a signed upload URL response.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function toResponse($request)
-    {
         /**
-         * @var array{name:string,type:string,size:int}
+         * @var array{name:string,type:string,size:int,meta:mixed}
          */
         $validated = $this->validate($request);
 
-        $key = $this->buildStorageKey($validated['name']);
+        $key = $this->buildStorageKey($validated);
 
         $postObject = new PostObjectV4(
             $this->getClient(),
@@ -705,15 +804,71 @@ class Upload implements Responsable
     /**
      * Build the storage key path for the uploaded file.
      *
-     * @param  string  $filename
+     * @param  array{name:string,type:string,size:int,meta:mixed}  $validated
      * @return string
      */
-    protected function buildStorageKey($filename)
+    public function buildStorageKey($validated)
     {
-        $prefix = \rtrim($this->getPath() ?? '', '/').'/';
-        $name = \pathinfo($filename, \PATHINFO_FILENAME);
-        $extension = \pathinfo($filename, \PATHINFO_EXTENSION);
+        /** @var string */
+        $filename = Arr::get($validated, 'name');
 
-        return $prefix.($this->getGeneratedName() ?? $name).'.'.$extension;
+        $name = $this->getName();
+
+        /** @var string */
+        $validatedName = match (true) {
+            $name === 'uuid' => Str::uuid()->toString(),
+            $name instanceof \Closure => type($this->evaluateValidated($name, $validated))->asString(),
+            default => $filename,
+        };
+
+        $path = $this->evaluateValidated($this->getPath(), $validated);
+
+        return Str::of($validatedName)
+            ->append(\pathinfo($filename, \PATHINFO_EXTENSION))
+            ->when($path,
+                fn (Stringable $name) => $name
+                    ->prepend('/', $path) // @phpstan-ignore-line
+                    ->replace('//', '/'),
+            )->toString();
+    }
+
+    /**
+     * Evaluate the closure using the validated data
+     *
+     * @param  \Closure|string|null  $closure
+     * @param  array{name:string,type:string,size:int,meta:mixed}  $validated
+     * @return string|null
+     */
+    protected function evaluateValidated($closure, $validated)
+    {
+        return $this->evaluate($closure, [
+            'data' => $validated,
+            'validated' => $validated,
+            'name' => Arr::get($validated, 'name'),
+            'type' => Arr::get($validated, 'type'),
+            'size' => Arr::get($validated, 'size'),
+            'meta' => Arr::get($validated, 'meta'),
+        ]);
+    }
+
+    /**
+     * Get the upload as form input attributes.
+     *
+     * @return array<string,mixed>
+     */
+    public function toArray()
+    {
+        // Format the types to be a comma separated string
+        $accepts = implode(',', \array_map(
+            static fn (string $type) => \str_ends_with($type, '/')
+                ? $type.'*'
+                : $type,
+            $this->getAccepted()
+        ));
+
+        return [
+            'multiple' => $this->isMultiple(),
+            'accept' => $accepts,
+        ];
     }
 }
