@@ -818,16 +818,15 @@ class Upload extends Primitive
         $validatedName = match (true) {
             $name === 'uuid' => Str::uuid()->toString(),
             $name instanceof \Closure => type($this->evaluateValidated($name, $validated))->asString(),
-            default => $filename,
+            default => \pathinfo($filename, \PATHINFO_FILENAME),
         };
 
         $path = $this->evaluateValidated($this->getPath(), $validated);
 
         return Str::of($validatedName)
-            ->append(\pathinfo($filename, \PATHINFO_EXTENSION))
-            ->when($path,
-                fn (Stringable $name) => $name
-                    ->prepend('/', $path) // @phpstan-ignore-line
+            ->append('.', \pathinfo($filename, \PATHINFO_EXTENSION))
+            ->when($path, fn (Stringable $name) => $name
+                    ->prepend($path, '/') // @phpstan-ignore-line
                     ->replace('//', '/'),
             )->toString();
     }
