@@ -826,8 +826,8 @@ class Upload extends Primitive
         return Str::of($validatedName)
             ->append('.', \pathinfo($filename, \PATHINFO_EXTENSION))
             ->when($path, fn (Stringable $name) => $name
-                    ->prepend($path, '/') // @phpstan-ignore-line
-                    ->replace('//', '/'),
+                ->prepend($path, '/') // @phpstan-ignore-line
+                ->replace('//', '/'),
             )->toString();
     }
 
