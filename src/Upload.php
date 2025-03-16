@@ -9,6 +9,11 @@ use Aws\S3\S3Client;
 use Carbon\Carbon;
 use Honed\Core\Concerns\HasRequest;
 use Honed\Core\Primitive;
+use Honed\Upload\Concerns\HasExpires;
+use Honed\Upload\Concerns\HasFileRules;
+use Honed\Upload\Concerns\HasFileTypes;
+use Honed\Upload\Concerns\HasMax;
+use Honed\Upload\Concerns\HasMin;
 use Honed\Upload\Rules\OfType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -16,19 +21,20 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Support\Stringable;
-use Illuminate\Support\Traits\Conditionable;
-use Illuminate\Support\Traits\Macroable;
-use Illuminate\Support\Traits\Tappable;
+use Illuminate\Contracts\Support\Responsable;
+use Illuminate\Contracts\Validation\ValidatesWhenResolved;
 
 /**
  * @extends \Honed\Core\Primitive<string,mixed>
  */
-class Upload extends Primitive
+class Upload extends Primitive //implements Responsable
 {
-    use Conditionable;
+    use HasExpires;
+    use HasFileRules;
+    use HasFileTypes;
+    use HasMax;
+    use HasMin;
     use HasRequest;
-    use Macroable;
-    use Tappable;
 
     /**
      * The disk to retrieve the S3 credentials from.
@@ -36,41 +42,6 @@ class Upload extends Primitive
      * @var string|null
      */
     protected $disk;
-
-    /**
-     * The maximum file size to upload.
-     *
-     * @var int|null
-     */
-    protected $maxSize;
-
-    /**
-     * The minimum file size to upload.
-     *
-     * @var int|null
-     */
-    protected $minSize;
-
-    /**
-     * The file size unit to use.
-     *
-     * @var 'bytes'|'kilobytes'|'megabytes'|'gigabytes'|string|null
-     */
-    protected $unit;
-
-    /**
-     * The types of files to accept.
-     *
-     * @var array<string>
-     */
-    protected $accepts = [];
-
-    /**
-     * The duration of the presigned URL.
-     *
-     * @var \Carbon\Carbon|int|string|null
-     */
-    protected $duration;
 
     /**
      * The path prefix to store the file in
@@ -105,18 +76,29 @@ class Upload extends Primitive
      */
     public function __construct(Request $request)
     {
-        $this->request($request);
         parent::__construct();
+        $this->request($request);
     }
 
     /**
      * Create a new upload instance.
      *
-     * @return \Honed\Upload\Upload
+     * @return static
      */
     public static function make()
     {
         return resolve(static::class);
+    }
+
+    /**
+     * Create a new upload instance for the given disk.
+     *
+     * @param  string  $disk
+     * @return static
+     */
+    public static function into($disk)
+    {
+        return static::make()->disk($disk);
     }
 
     /**
@@ -139,187 +121,17 @@ class Upload extends Primitive
      */
     public function getDisk()
     {
-        if (isset($this->disk)) {
-            return $this->disk;
-        }
-
-        return static::fallbackDisk();
+        return $this->disk ?? static::fallbackDisk();
     }
 
     /**
      * Get the disk to use for uploading files from the config.
-     *
-     * @default 's3'
      *
      * @return string
      */
     public static function fallbackDisk()
     {
         return type(config('upload.disk', 's3'))->asString();
-    }
-
-    /**
-     * Set the maximum file size to upload.
-     *
-     * @param  int  $max
-     * @return $this
-     */
-    public function max($max)
-    {
-        $this->maxSize = $max;
-
-        return $this;
-    }
-
-    /**
-     * Set the minimum file size to upload.
-     *
-     * @param  int  $min
-     * @return $this
-     */
-    public function min($min)
-    {
-        $this->minSize = $min;
-
-        return $this;
-    }
-
-    /**
-     * Set the minimum and maximum file size to upload.
-     *
-     * @param  int  $size
-     * @param  int|null  $max
-     * @return $this
-     */
-    public function size($size, $max = null)
-    {
-        return $this->when(\is_null($max),
-            fn () => $this->max($size),
-            fn () => $this->min($size)->max(type($max)->asInt()),
-        );
-    }
-
-    /**
-     * Set the file size unit to use.
-     *
-     * @param  'bytes'|'kilobytes'|'megabytes'|'gigabytes'|string  $unit
-     * @return $this
-     */
-    public function unit($unit)
-    {
-        $this->unit = \mb_strtolower($unit);
-
-        return $this;
-    }
-
-    /**
-     * Set the file size unit to bytes.
-     *
-     * @return $this
-     */
-    public function bytes()
-    {
-        return $this->unit('bytes');
-    }
-
-    /**
-     * Set the file size unit to kilobytes.
-     *
-     * @return $this
-     */
-    public function kilobytes()
-    {
-        return $this->unit('kilobytes');
-    }
-
-    /**
-     * Set the file size unit to megabytes.
-     *
-     * @return $this
-     */
-    public function megabytes()
-    {
-        return $this->unit('megabytes');
-    }
-
-    /**
-     * Set the file size unit to gigabytes.
-     *
-     * @return $this
-     */
-    public function gigabytes()
-    {
-        return $this->unit('gigabytes');
-    }
-
-    /**
-     * Get the file size unit to use.
-     *
-     * @return 'bytes'|'kilobytes'|'megabytes'|'gigabytes'|string
-     */
-    public function getUnit()
-    {
-        if (isset($this->unit)) {
-            return $this->unit;
-        }
-
-        return static::fallbackUnit();
-    }
-
-    /**
-     * Get the file size unit to use from the config.
-     *
-     * @return 'bytes'|'kilobytes'|'megabytes'|'gigabytes'|string
-     */
-    public static function fallbackUnit()
-    {
-        return type(config('upload.unit', 'bytes'))->asString();
-    }
-
-    /**
-     * Get the minimum file size to upload in bytes.
-     *
-     * @return int
-     */
-    public function getMinSize(bool $convert = true)
-    {
-        $minSize = $this->minSize
-            ?? static::fallbackMinSize();
-
-        if ($convert) {
-            return $this->convertSize($minSize);
-        }
-
-        return $minSize;
-    }
-
-    /**
-     * Get the minimum file size to upload in bytes from the config.
-     *
-     * @default 0
-     *
-     * @return int
-     */
-    public static function fallbackMinSize()
-    {
-        return type(config('upload.size.min', 0))->asInt();
-    }
-
-    /**
-     * Get the maximum file size to upload in bytes.
-     *
-     * @return int
-     */
-    public function getMaxSize(bool $convert = true)
-    {
-        $maxSize = $this->maxSize
-            ?? static::fallbackMaxSize();
-
-        if ($convert) {
-            return $this->convertSize($maxSize);
-        }
-
-        return $maxSize;
     }
 
     /**
@@ -332,149 +144,6 @@ class Upload extends Primitive
     public static function fallbackMaxSize()
     {
         return type(config('upload.size.max', 1024 ** 3))->asInt();
-    }
-
-    /**
-     * Convert the provided size make the number of bytes using the unit.
-     *
-     * @return int
-     */
-    public function convertSize(int $size)
-    {
-        return match ($this->getUnit()) {
-            'kilobytes' => $size * 1024,
-            'megabytes' => $size * (1024 ** 2),
-            'gigabytes' => $size * (1024 ** 3),
-            default => $size,
-        };
-    }
-
-    /**
-     * Set the accepted file types.
-     *
-     * @param  string|array<int,string>|\Illuminate\Support\Collection<int,string>  $accepts
-     * @return $this
-     */
-    public function accepts($accepts)
-    {
-        if ($accepts instanceof Collection) {
-            $accepts = $accepts->all();
-        }
-
-        $this->accepts = \array_map(
-            static fn (string $type) => \str_replace('*', '', $type),
-            Arr::wrap($accepts)
-        );
-
-        return $this;
-    }
-
-    /**
-     * Set the accepted file types to all image MIME types.
-     *
-     * @return $this
-     */
-    public function acceptsImages()
-    {
-        return $this->accepts('image/');
-    }
-
-    /**
-     * Set the accepted file types to all video MIME types.
-     *
-     * @return $this
-     */
-    public function acceptsVideos()
-    {
-        return $this->accepts('video/');
-    }
-
-    /**
-     * Set the accepted file types to all audio MIME types.
-     *
-     * @return $this
-     */
-    public function acceptsAudio()
-    {
-        return $this->accepts('audio/');
-    }
-
-    /**
-     * Get the accepted file types.
-     *
-     * @return array<int,string>
-     */
-    public function getAccepted()
-    {
-        if (empty($this->accepts)) {
-            return static::fallbackAccepted();
-        }
-
-        return $this->accepts;
-    }
-
-    /**
-     * Get the accepted file types from the config.
-     *
-     * @return array<int,string>
-     */
-    public static function fallbackAccepted()
-    {
-        return type(config('upload.types', []))->asArray();
-    }
-
-    /**
-     * Set the duration of the presigned URL.
-     * If an integer is provided, it will be interpreted as the number of seconds.
-     *
-     * @param  \Carbon\Carbon|int|string|null  $duration
-     * @return $this
-     */
-    public function duration($duration)
-    {
-        $this->duration = $duration;
-
-        return $this;
-    }
-
-    /**
-     * Set the duration of the presigned URL.
-     * If an integer is provided, it will be interpreted as the number of seconds.
-     *
-     * @param  \Carbon\Carbon|int|string|null  $expires
-     * @return $this
-     */
-    public function expires($expires)
-    {
-        $this->duration = $expires;
-
-        return $this;
-    }
-
-    /**
-     * Set the duration of the presigned URL to a number of seconds.
-     *
-     * @param  int  $seconds
-     * @return $this
-     */
-    public function seconds($seconds)
-    {
-        $this->duration = \sprintf('+%d seconds', $seconds);
-
-        return $this;
-    }
-
-    /**
-     * Set the duration of the presigned URL to a number of minutes.
-     *
-     * @param  int  $minutes
-     * @return $this
-     */
-    public function minutes($minutes)
-    {
-        $this->duration = \sprintf('+%d minutes', $minutes);
-
-        return $this;
     }
 
     /**
@@ -494,6 +163,7 @@ class Upload extends Primitive
             $duration instanceof Carbon => \sprintf(
                 '+%d seconds', \round(\abs($duration->diffInSeconds()))
             ),
+
             default => static::fallbackDuration(),
         };
     }
@@ -547,7 +217,7 @@ class Upload extends Primitive
     /**
      * Get the name, or method, of generating the name of the file to be stored.
      *
-     * @return 'uuid'|\Closure|string|null
+     * @return 'uuid'|string|\Closure|null
      */
     public function getName()
     {
@@ -555,14 +225,14 @@ class Upload extends Primitive
     }
 
     /**
-     * Set the ACL to use for the file.
+     * Set the access control list to use for the file.
      *
-     * @param  string  $accessControlList
+     * @param  string  $acl
      * @return $this
      */
-    public function acl($accessControlList)
+    public function acl($acl)
     {
-        $this->acl = $accessControlList;
+        $this->acl = $acl;
 
         return $this;
     }
@@ -572,13 +242,9 @@ class Upload extends Primitive
      *
      * @return string
      */
-    public function getAccessControlList()
+    public function getACL()
     {
-        if (isset($this->acl)) {
-            return $this->acl;
-        }
-
-        return static::fallbackAccessControlList();
+        return $this->acl ?? static::fallbackACL();
     }
 
     /**
@@ -586,31 +252,9 @@ class Upload extends Primitive
      *
      * @return string
      */
-    public static function fallbackAccessControlList()
+    public static function fallbackACL()
     {
         return type(config('upload.acl', 'public-read'))->asString();
-    }
-
-    /**
-     * Set the input to accept multiple files.
-     *
-     * @return $this
-     */
-    public function multiple()
-    {
-        $this->multiple = true;
-
-        return $this;
-    }
-
-    /**
-     * Determine if the input should accept multiple files.
-     *
-     * @return bool
-     */
-    public function isMultiple()
-    {
-        return $this->multiple;
     }
 
     /**
@@ -622,7 +266,7 @@ class Upload extends Primitive
     public function getFormInputs($key)
     {
         return [
-            'acl' => $this->getAccessControlList(),
+            'acl' => $this->getACL(),
             'key' => $key,
         ];
     }
@@ -636,7 +280,7 @@ class Upload extends Primitive
     public function getOptions($key)
     {
         $options = [
-            ['eq', '$acl', $this->getAccessControlList()],
+            ['eq', '$acl', $this->getACL()],
             ['eq', '$bucket', $this->getBucket()],
             ['eq', '$key', $key],
             ['content-length-range', $this->getMinSize(), $this->getMaxSize()],
@@ -826,8 +470,8 @@ class Upload extends Primitive
         return Str::of($validatedName)
             ->append('.', \pathinfo($filename, \PATHINFO_EXTENSION))
             ->when($path, fn (Stringable $name) => $name
-                ->prepend($path, '/') // @phpstan-ignore-line
-                ->replace('//', '/'),
+                    ->prepend($path, '/') // @phpstan-ignore-line
+                    ->replace('//', '/'),
             )->toString();
     }
 

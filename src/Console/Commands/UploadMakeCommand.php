@@ -39,7 +39,7 @@ class UploadMakeCommand extends GeneratorCommand
      */
     protected function getStub()
     {
-        return $this->resolveStubPath('/stubs/upload.stub');
+        return $this->resolveStubPath('/stubs/honed.upload.stub');
     }
 
     /**
