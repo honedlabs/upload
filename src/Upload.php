@@ -15,19 +15,17 @@ use Honed\Upload\Concerns\HasFileTypes;
 use Honed\Upload\Concerns\HasMax;
 use Honed\Upload\Concerns\HasMin;
 use Honed\Upload\Rules\OfType;
+use Illuminate\Contracts\Support\Responsable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Support\Stringable;
-use Illuminate\Contracts\Support\Responsable;
-use Illuminate\Contracts\Validation\ValidatesWhenResolved;
 
 /**
  * @extends \Honed\Core\Primitive<string,mixed>
  */
-class Upload extends Primitive //implements Responsable
+class Upload extends Primitive // implements Responsable
 {
     use HasExpires;
     use HasFileRules;
@@ -470,8 +468,8 @@ class Upload extends Primitive //implements Responsable
         return Str::of($validatedName)
             ->append('.', \pathinfo($filename, \PATHINFO_EXTENSION))
             ->when($path, fn (Stringable $name) => $name
-                    ->prepend($path, '/') // @phpstan-ignore-line
-                    ->replace('//', '/'),
+                ->prepend($path, '/') // @phpstan-ignore-line
+                ->replace('//', '/'),
             )->toString();
     }
 

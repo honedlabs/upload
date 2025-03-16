@@ -12,15 +12,15 @@ trait HasFileRules
 {
     /**
      * Get the configuration rules for validating file uploads.
-     * 
+     *
      * @var array<int, \Honed\Upload\UploadRule>
      */
     protected $rules = [];
 
     /**
      * Set the rules for validating file uploads.
-     * 
-     * @param array<int, \Honed\Upload\UploadRule> $rules
+     *
+     * @param  array<int, \Honed\Upload\UploadRule>  $rules
      * @return $this
      */
     public function rules(...$rules)
@@ -32,7 +32,7 @@ trait HasFileRules
 
     /**
      * Get the rules for validating file uploads.
-     * 
+     *
      * @return array<int, \Honed\Upload\UploadRule>
      */
     public function getRules()
@@ -42,7 +42,7 @@ trait HasFileRules
 
     /**
      * Get the maximum file size in bytes from the config.
-     * 
+     *
      * @return int
      */
     public static function fallbackMax()
@@ -52,7 +52,7 @@ trait HasFileRules
 
     /**
      * Get the minimum file size in bytes from the config.
-     * 
+     *
      * @return int
      */
     public static function fallbackMin()
@@ -62,7 +62,7 @@ trait HasFileRules
 
     /**
      * Get the expiry duration of the request in seconds from the config.
-     * 
+     *
      * @return int
      */
     public static function fallbackExpires()
@@ -72,8 +72,8 @@ trait HasFileRules
 
     /**
      * Validate the incoming request.
-     * 
-     * @param \Illuminate\Http\Request $request
+     *
+     * @param  \Illuminate\Http\Request  $request
      * @return array<string, mixed>
      */
     public function validate($request)
@@ -94,8 +94,8 @@ trait HasFileRules
 
     /**
      * Destructure the filename into its components.
-     * 
-     * @param mixed $filename
+     *
+     * @param  mixed  $filename
      * @return array{string|null, string|null}
      */
     public static function destructureFilename($filename)
@@ -122,6 +122,7 @@ trait HasFileRules
 
         $min = $rule->getMin();
         $max = $rule->getMax();
+
         return [
             'name' => ['required', 'string', 'max:1024'],
             'extension' => ['required', 'string'],

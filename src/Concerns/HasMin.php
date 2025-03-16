@@ -8,15 +8,15 @@ trait HasMin
 {
     /**
      * The minimum file size in bytes.
-     * 
+     *
      * @var int|null
      */
     protected $min;
 
     /**
      * Set the minimum file size in bytes.
-     * 
-     * @param int $size
+     *
+     * @param  int  $size
      * @return $this
      */
     public function min($size)
@@ -28,7 +28,7 @@ trait HasMin
 
     /**
      * Get the minimum file size in bytes.
-     * 
+     *
      * @return int|null
      */
     public function getMin()

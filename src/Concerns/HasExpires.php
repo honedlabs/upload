@@ -8,15 +8,15 @@ trait HasExpires
 {
     /**
      * The expiry duration of the request in seconds.
-     * 
+     *
      * @var int|null
      */
     protected $expires;
 
     /**
      * Set the expiry duration of the request in seconds.
-     * 
-     * @param int $seconds
+     *
+     * @param  int  $seconds
      * @return $this
      */
     public function expires($seconds)
@@ -28,7 +28,7 @@ trait HasExpires
 
     /**
      * Get the expiry duration of the request in seconds.
-     * 
+     *
      * @return int|null
      */
     public function getExpires()

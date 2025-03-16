@@ -8,15 +8,15 @@ trait HasMax
 {
     /**
      * The maximum file size in bytes.
-     * 
+     *
      * @var int|null
      */
     protected $max;
 
     /**
      * Set the maximum file size in bytes.
-     * 
-     * @param int $size
+     *
+     * @param  int  $size
      * @return $this
      */
     public function max($size)
@@ -28,7 +28,7 @@ trait HasMax
 
     /**
      * Get the maximum file size in bytes.
-     * 
+     *
      * @return int|null
      */
     public function getMax()

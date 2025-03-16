@@ -10,15 +10,15 @@ trait HasTypes
 {
     /**
      * List of the file mime types and extensions.
-     * 
+     *
      * @var array<int, string>
      */
     protected $types = [];
 
     /**
      * Set the file mime types and extensions.
-     * 
-     * @param string $types
+     *
+     * @param  string  $types
      * @return $this
      */
     public function types(...$types)
@@ -30,7 +30,7 @@ trait HasTypes
 
     /**
      * Get the accepted file mime types and extensions.
-     * 
+     *
      * @return array<int, string>
      */
     public function getTypes()
@@ -40,7 +40,7 @@ trait HasTypes
 
     /**
      * Get the file mime types.
-     * 
+     *
      * @return array<int, string>
      */
     public function getMimeTypes()
@@ -55,7 +55,7 @@ trait HasTypes
 
     /**
      * Get the file extensions.
-     * 
+     *
      * @return array<int, string>
      */
     public function getFileExtensions()
