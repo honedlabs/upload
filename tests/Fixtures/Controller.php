@@ -12,9 +12,7 @@ final class Controller extends BaseController
     public function upload()
     {
         return Upload::make()
-            ->acceptsImages()
-            ->size(1, 2)
-            ->kilobytes()
+            ->onlyImages()
             ->name(fn ($meta, $name) => $name.'-'.$meta)
             ->create();
     }

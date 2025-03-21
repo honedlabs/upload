@@ -22,18 +22,24 @@ final class UploadServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        $this->publishes([
-            __DIR__.'/../config/upload.php' => config_path('upload.php'),
-        ], 'config');
-
-        $this->publishes([
-            __DIR__.'/../stubs' => base_path('stubs'),
-        ], 'stubs');
+        $this->loadTranslationsFrom(__DIR__.'/../lang', 'upload');
 
         if ($this->app->runningInConsole()) {
             $this->commands([
                 UploadMakeCommand::class,
             ]);
+
+            $this->publishes([
+                __DIR__.'/../config/upload.php' => config_path('upload.php'),
+            ], 'config');
+
+            $this->publishes([
+                __DIR__.'/../stubs' => base_path('stubs'),
+            ], 'stubs');
+
+            $this->publishes([
+                __DIR__.'/../lang' => lang_path('vendor/upload'),
+            ], 'lang');
         }
     }
 }

@@ -31,25 +31,8 @@ return [
     | string, such as 'megabytes'.
     */
 
-    'size' => [
-        'min' => 0,
-        'max' => 1024 ** 3, // 1GB
-        'unit' => 'bytes',
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Content types
-    |--------------------------------------------------------------------------
-    |
-    | You can globally specify the content types for your uploads if not
-    | provided at runtime to the Upload class. This accepts an array of
-    | MIME types, such as 'image/png', or partial wildcards, such as 'image/'.
-    */
-
-    'accepts' => [
-
-    ],
+    'min_size' => 1,
+    'max_size' => 10 * (1024 ** 3), // 10GB
 
     /*
     |--------------------------------------------------------------------------
@@ -61,7 +44,7 @@ return [
     | upload endpoint.
     */
 
-    'expires' => '+2 minutes',
+    'expires' => 120,
 
     /*
     |--------------------------------------------------------------------------

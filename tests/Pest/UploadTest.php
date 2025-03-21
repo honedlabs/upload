@@ -2,85 +2,35 @@
 
 declare(strict_types=1);
 
+use Honed\Upload\Contracts\AnonymizesName;
 use Honed\Upload\Upload;
+use Honed\Upload\UploadData;
+use Honed\Upload\UploadRule;
+use Illuminate\Http\JsonResponse;
+
+beforeEach(function () {
+    $this->upload = Upload::make();
+});
+
+it('has into shorthand', function () {
+    expect(Upload::into('r2'))
+        ->getDisk()->toBe('r2');
+});
 
 it('has disk', function () {
-    expect(Upload::make())
+    expect($this->upload)
         ->getDisk()->toBe(config('upload.disk'))
         ->disk('r2')->toBeInstanceOf(Upload::class)
         ->getDisk()->toBe('r2');
 });
 
-it('has max size', function () {
-    expect(Upload::make())
-        ->getMaxSize()->toBe(config('upload.size.max'))
-        ->max(1000)->toBeInstanceOf(Upload::class)
-        ->getMaxSize()->toBe(1000);
-});
-
-it('has min size', function () {
-    expect(Upload::make())
-        ->getMinSize()->toBe(config('upload.size.min'))
-        ->min(1000)->toBeInstanceOf(Upload::class)
-        ->getMinSize()->toBe(1000);
-});
-
-it('has sizes', function () {
-    expect(Upload::make())
-        ->size(1000)->toBeInstanceOf(Upload::class)
-        ->getMinSize()->toBe(config('upload.size.min'))
-        ->getMaxSize()->toBe(1000)
-        ->size(1, 10)->toBeInstanceOf(Upload::class)
-        ->getMinSize()->toBe(1)
-        ->getMaxSize()->toBe(10);
-});
-
-it('has unit', function () {
-    expect(Upload::make())
-        ->getUnit()->toBe(config('upload.size.unit'))
-        ->unit('petabytes')->toBeInstanceOf(Upload::class)
-        ->getUnit()->toBe('petabytes')
-        ->bytes()->toBeInstanceOf(Upload::class)
-        ->getUnit()->toBe('bytes')
-        ->kilobytes()->toBeInstanceOf(Upload::class)
-        ->getUnit()->toBe('kilobytes')
-        ->megabytes()->toBeInstanceOf(Upload::class)
-        ->getUnit()->toBe('megabytes')
-        ->gigabytes()->toBeInstanceOf(Upload::class)
-        ->getUnit()->toBe('gigabytes');
-});
-
-it('accepts types', function () {
-    expect(Upload::make())
-        ->getAccepted()->toEqual(config('upload.accepts'))
-        ->accepts('image/png')->toBeInstanceOf(Upload::class)
-        ->getAccepted()->toEqual(['image/png'])
-        ->accepts('image/svg+xml')->toBeInstanceOf(Upload::class)
-        ->getAccepted()->toEqual(['image/svg+xml'])
-        ->acceptsImages()->toBeInstanceOf(Upload::class)
-        ->getAccepted()->toEqual(['image/'])
-        ->acceptsVideos()->toBeInstanceOf(Upload::class)
-        ->getAccepted()->toEqual(['video/'])
-        ->acceptsAudio()->toBeInstanceOf(Upload::class)
-        ->getAccepted()->toEqual(['audio/']);
-});
-
-it('has duration', function () {
-    $fn = fn ($d) => \sprintf('+%d seconds', $d);
-
-    expect(Upload::make())
-        ->getDuration()->toBe(config('upload.expires'))
-        ->duration(1)->toBeInstanceOf(Upload::class)
-        ->getDuration()->toBe($fn(1))
-        ->expires(1)->toBeInstanceOf(Upload::class)
-        ->getDuration()->toBe($fn(1))
-        ->seconds(1)->toBeInstanceOf(Upload::class)
-        ->getDuration()->toBe($fn(1))
-        ->minutes(1)->toBeInstanceOf(Upload::class)
-        ->getDuration()->toBe('+1 minutes')
-        ->duration('+1 hour')->toBeInstanceOf(Upload::class)
-        ->getDuration()->toBe('+1 hour')
-        ->duration(now()->addMinute())->toBeInstanceOf(Upload::class);
+it('has rules', function () {
+    expect($this->upload)
+        ->getRules()->toBeEmpty()
+        ->rules(UploadRule::make('image/png'))->toBe($this->upload)
+        ->getRules()->toHaveCount(1)
+        ->rules([UploadRule::make('image/jpeg')])->toBe($this->upload)
+        ->getRules()->toHaveCount(2);
 });
 
 it('has path', function () {
@@ -97,14 +47,29 @@ it('has name', function () {
         ->getName()->toBe('test');
 });
 
-it('has access control list', function () {
-    expect(Upload::make())
-        ->getAccessControlList()->toBe(config('upload.acl'))
-        ->acl('private-read')->toBeInstanceOf(Upload::class)
-        ->getAccessControlList()->toBe('private-read');
+it('anonymizes', function () {
+    expect($this->upload)
+        ->isAnonymized()->toBeFalse()
+        ->anonymize()->toBe($this->upload)
+        ->isAnonymized()->toBeTrue()
+        ->isAnonymizedByDefault()->toBeFalse();
+
+    $upload = new class extends Upload implements AnonymizesName {
+        public function __construct() {}
+    };
+
+    expect($upload)
+        ->isAnonymized()->toBeTrue();
 });
 
-it('creates form inputs', function () {
+it('has access control list', function () {
+    expect(Upload::make())
+        ->getACL()->toBe(config('upload.acl'))
+        ->acl('private-read')->toBeInstanceOf(Upload::class)
+        ->getACL()->toBe('private-read');
+});
+
+it('has form inputs', function () {
     $key = 'test';
 
     expect(Upload::make()->getFormInputs($key))->toEqual([
@@ -113,20 +78,89 @@ it('creates form inputs', function () {
     ]);
 });
 
-it('creates policy options', function () {
-    $key = 'test';
+it('has policy options', function () {
+    $key = 'test.png';
 
     expect(Upload::make())
         ->getOptions($key)->toBeArray()
         ->toHaveCount(4);
 });
 
-it('has form attributes as array representation', function () {
-    expect(Upload::make())
-        ->multiple()->toBeInstanceOf(Upload::class)
-        ->accepts(['image/png', 'video/'])
-        ->toArray()->toEqual([
-            'multiple' => true,
-            'accept' => 'image/png,video/*',
+it('has policy options with mime types', function () {
+    $key = 'test.png';
+
+    expect(Upload::make()->types('image/*'))
+        ->getOptions($key)->toBeArray()
+        ->toHaveCount(5);
+});
+
+it('destructures filenames', function () {
+    expect(Upload::destructureFilename('test.png'))
+        ->toBe(['test', 'png']);
+
+    expect(Upload::destructureFilename(null))
+        ->toBe([null, null]);
+});
+
+describe('key creation', function () {
+    beforeEach(function () {
+        $this->data = new UploadData(
+            'test',
+            'png',
+            'image/png',
+            1024,
+            ['publisher' => 10]
+        );
+    });
+
+    test('basic', function () {
+        expect($this->upload)
+            ->createKey($this->data)->toBe('test.png');
+    });
+
+    test('anonymized', function () {
+        expect($this->upload->anonymize())
+            ->createKey($this->data)->not->toBe('test.png');
+    });
+
+    test('closure', function () {
+        expect($this->upload->name(fn ($name, $meta) => $name . '-' . $meta['publisher']))
+            ->createKey($this->data)->toBe('test-10.png');
+    });
+
+    test('path', function () {
+        expect($this->upload->path('test'))
+            ->createKey($this->data)
+            ->toBe('test/test.png');
+    });
+
+    test('path closure', function () {
+        expect($this->upload->path(fn ($meta) => '/images/' . $meta['publisher'] . '/'))
+            ->createKey($this->data)
+            ->toBe('images/10/test.png');
+    });
+});
+
+it('creates', function () {
+    $request = presignRequest('test.png', 'image/png', 1024);
+
+    expect($this->upload->create($request))
+        ->toBeArray()
+        ->toHaveKeys([
+            'attributes',
+            'inputs',
         ]);
+});
+
+it('is response', function () {
+    $request = presignRequest('test.png', 'image/png', 1024);
+
+    expect($this->upload->toResponse($request))
+        ->toBeInstanceOf(JsonResponse::class);
+});
+
+it('has array representation', function () {
+    expect($this->upload->toArray())
+        ->toBeArray()
+        ->toBeEmpty();
 });

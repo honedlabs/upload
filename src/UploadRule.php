@@ -2,19 +2,13 @@
 
 declare(strict_types=1);
 
-namespace App\Upload;
+namespace Honed\Upload;
 
-use Honed\Upload\Concerns\HasExpires;
-use Honed\Upload\Concerns\HasMax;
-use Honed\Upload\Concerns\HasMin;
-use Honed\Upload\Concerns\HasTypes;
+use Honed\Upload\Concerns\ValidatesUpload;
 
 class UploadRule
 {
-    use HasExpires;
-    use HasMax;
-    use HasMin;
-    use HasTypes;
+    use ValidatesUpload;
 
     /**
      * Create a new file rule instance.
@@ -24,13 +18,14 @@ class UploadRule
      */
     public static function make(...$types)
     {
-        return resolve(static::class)->types(...$types);
+        return resolve(static::class)
+            ->types($types);
     }
 
     /**
      * Determine if the given type matches this rule.
      *
-     * @param  string  $types
+     * @param  mixed  ...$types
      * @return bool
      */
     public function isMatching(...$types)

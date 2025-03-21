@@ -6,15 +6,10 @@ namespace Honed\Upload;
 
 use Aws\S3\PostObjectV4;
 use Aws\S3\S3Client;
-use Carbon\Carbon;
 use Honed\Core\Concerns\HasRequest;
 use Honed\Core\Primitive;
-use Honed\Upload\Concerns\HasExpires;
-use Honed\Upload\Concerns\HasFileRules;
-use Honed\Upload\Concerns\HasFileTypes;
-use Honed\Upload\Concerns\HasMax;
-use Honed\Upload\Concerns\HasMin;
-use Honed\Upload\Rules\OfType;
+use Honed\Upload\Concerns\ValidatesUpload;
+use Honed\Upload\Contracts\AnonymizesName;
 use Illuminate\Contracts\Support\Responsable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -25,14 +20,10 @@ use Illuminate\Support\Stringable;
 /**
  * @extends \Honed\Core\Primitive<string,mixed>
  */
-class Upload extends Primitive // implements Responsable
+class Upload extends Primitive implements Responsable
 {
-    use HasExpires;
-    use HasFileRules;
-    use HasFileTypes;
-    use HasMax;
-    use HasMin;
     use HasRequest;
+    use ValidatesUpload;
 
     /**
      * The disk to retrieve the S3 credentials from.
@@ -42,18 +33,32 @@ class Upload extends Primitive // implements Responsable
     protected $disk;
 
     /**
+     * Get the configuration rules for validating file uploads.
+     *
+     * @var array<int, \Honed\Upload\UploadRule>
+     */
+    protected $rules = [];
+
+    /**
      * The path prefix to store the file in
      *
-     * @var string|\Closure|null
+     * @var string|\Closure(mixed...):string|null
      */
     protected $path;
 
     /**
      * The name of the file to be stored.
      *
-     * @var string|\Closure|null
+     * @var string|\Closure(mixed...):string|null
      */
     protected $name;
+
+    /**
+     * Whether the file name should be anonymized using a UUID.
+     *
+     * @var bool|null
+     */
+    protected $anonymize;
 
     /**
      * The access control list to use for the file.
@@ -63,29 +68,25 @@ class Upload extends Primitive // implements Responsable
     protected $acl;
 
     /**
-     * Set the file upload component to accept multiple files.
-     *
-     * @var bool
-     */
-    protected $multiple = false;
-
-    /**
      * Create a new upload instance.
      */
     public function __construct(Request $request)
     {
         parent::__construct();
+
         $this->request($request);
     }
 
     /**
      * Create a new upload instance.
      *
+     * @param  string  $disk
      * @return static
      */
-    public static function make()
+    public static function make($disk = null)
     {
-        return resolve(static::class);
+        return resolve(static::class)
+            ->disk($disk);
     }
 
     /**
@@ -96,7 +97,7 @@ class Upload extends Primitive // implements Responsable
      */
     public static function into($disk)
     {
-        return static::make()->disk($disk);
+        return static::make($disk);
     }
 
     /**
@@ -119,7 +120,7 @@ class Upload extends Primitive // implements Responsable
      */
     public function getDisk()
     {
-        return $this->disk ?? static::fallbackDisk();
+        return $this->disk ?? static::getDefaultDisk();
     }
 
     /**
@@ -127,53 +128,34 @@ class Upload extends Primitive // implements Responsable
      *
      * @return string
      */
-    public static function fallbackDisk()
+    public static function getDefaultDisk()
     {
         return type(config('upload.disk', 's3'))->asString();
     }
 
     /**
-     * Get the maximum file size to upload in bytes from the config.
+     * Set the rules for validating file uploads.
      *
-     * @default 1GB
-     *
-     * @return int
+     * @param  iterable<\Honed\Upload\UploadRule>  ...$rules
+     * @return $this
      */
-    public static function fallbackMaxSize()
+    public function rules(...$rules)
     {
-        return type(config('upload.size.max', 1024 ** 3))->asInt();
+        $rules = Arr::flatten($rules);
+
+        $this->rules = \array_merge($this->rules, $rules);
+
+        return $this;
     }
 
     /**
-     * Get the duration of the presigned URL.
+     * Get the rules for validating file uploads.
      *
-     * @return string
+     * @return array<int, \Honed\Upload\UploadRule>
      */
-    public function getDuration()
+    public function getRules()
     {
-        $duration = $this->duration;
-
-        return match (true) {
-            \is_string($duration) => $duration,
-
-            \is_int($duration) => \sprintf('+%d seconds', $duration),
-
-            $duration instanceof Carbon => \sprintf(
-                '+%d seconds', \round(\abs($duration->diffInSeconds()))
-            ),
-
-            default => static::fallbackDuration(),
-        };
-    }
-
-    /**
-     * Get the duration of the presigned URL from the config.
-     *
-     * @return string
-     */
-    public static function fallbackDuration()
-    {
-        return type(config('upload.expires', '+2 minutes'))->asString();
+        return $this->rules;
     }
 
     /**
@@ -192,7 +174,7 @@ class Upload extends Primitive // implements Responsable
     /**
      * Get the path to store the file at.
      *
-     * @return string|\Closure|null
+     * @return string|\Closure(mixed...):string|null
      */
     public function getPath()
     {
@@ -202,7 +184,7 @@ class Upload extends Primitive // implements Responsable
     /**
      * Set the name, or method, of generating the name of the file to be stored.
      *
-     * @param  'uuid'|\Closure|string  $name
+     * @param  \Closure(mixed...):string|string  $name
      * @return $this
      */
     public function name($name)
@@ -215,11 +197,52 @@ class Upload extends Primitive // implements Responsable
     /**
      * Get the name, or method, of generating the name of the file to be stored.
      *
-     * @return 'uuid'|string|\Closure|null
+     * @return \Closure(mixed...):string|string|null
      */
     public function getName()
     {
         return $this->name;
+    }
+
+    /**
+     * Set whether to anonymize the file name using a UUID.
+     *
+     * @param  bool  $anonymize
+     * @return $this
+     */
+    public function anonymize($anonymize = true)
+    {
+        $this->anonymize = $anonymize;
+
+        return $this;
+    }
+
+    /**
+     * Determine whether the file name should be anonymized using a UUID.
+     *
+     * @return bool
+     */
+    public function isAnonymized()
+    {
+        if (isset($this->anonymize)) {
+            return $this->anonymize;
+        }
+
+        if ($this instanceof AnonymizesName) {
+            return true;
+        }
+
+        return static::isAnonymizedByDefault();
+    }
+
+    /**
+     * Determine if the file name should be anonymized using a UUID by default.
+     *
+     * @return bool
+     */
+    public static function isAnonymizedByDefault()
+    {
+        return (bool) config('upload.anonymize_name', false);
     }
 
     /**
@@ -242,7 +265,7 @@ class Upload extends Primitive // implements Responsable
      */
     public function getACL()
     {
-        return $this->acl ?? static::fallbackACL();
+        return $this->acl ?? static::getDefaultACL();
     }
 
     /**
@@ -250,9 +273,40 @@ class Upload extends Primitive // implements Responsable
      *
      * @return string
      */
-    public static function fallbackACL()
+    public static function getDefaultACL()
     {
         return type(config('upload.acl', 'public-read'))->asString();
+    }
+
+    /**
+     * Get the S3 client to use for uploading files.
+     *
+     * @return \Aws\S3\S3Client
+     */
+    public function getClient()
+    {
+        $disk = $this->getDisk();
+
+        return new S3Client([
+            'version' => 'latest',
+            'region' => config("filesystems.disks.{$disk}.region"),
+            'credentials' => [
+                'key' => config("filesystems.disks.{$disk}.key"),
+                'secret' => config("filesystems.disks.{$disk}.secret"),
+            ],
+        ]);
+    }
+
+    /**
+     * Get the S3 bucket to use for uploading files.
+     *
+     * @return string
+     */
+    public function getBucket()
+    {
+        $disk = $this->getDisk();
+
+        return type(config("filesystems.disks.{$disk}.bucket"))->asString();
     }
 
     /**
@@ -279,237 +333,185 @@ class Upload extends Primitive // implements Responsable
     {
         $options = [
             ['eq', '$acl', $this->getACL()],
-            ['eq', '$bucket', $this->getBucket()],
             ['eq', '$key', $key],
-            ['content-length-range', $this->getMinSize(), $this->getMaxSize()],
+            ['eq', '$bucket', $this->getBucket()],
+            ['content-length-range', $this->getMin(), $this->getMax()],
         ];
 
-        $accepts = $this->getAccepted();
+        $mimes = $this->getMimes();
 
-        if (filled($accepts)) {
-            // Remove any file extensions from the validator, instead using mime types
-            $accepts = \implode(',', \array_values(
-                \array_filter(
-                    $accepts,
-                    static fn (string $type) => ! \str_starts_with($type, '.')
-                )
-            ));
-
-            $options[] = ['starts-with', '$Content-Type', $accepts];
+        if (filled($mimes)) {
+            $options[] = ['starts-with', '$Content-Type', \implode(',', $mimes)];
         }
 
         return $options;
     }
 
     /**
-     * Get a configuration value from the disk.
-     *
-     * @return mixed
-     */
-    public function getDiskConfig(string $key)
-    {
-        return config(
-            \sprintf('filesystems.disks.%s.%s', $this->getDisk(), $key)
-        );
-    }
-
-    /**
-     * Get the S3 client to use for uploading files.
-     *
-     * @return \Aws\S3\S3Client
-     */
-    public function getClient()
-    {
-        return new S3Client([
-            'version' => 'latest',
-            'region' => $this->getDiskConfig('region'),
-            'credentials' => [
-                'key' => $this->getDiskConfig('key'),
-                'secret' => $this->getDiskConfig('secret'),
-            ],
-        ]);
-    }
-
-    /**
-     * Get the bucket to use for uploading files.
-     *
-     * @return string
-     */
-    public function getBucket()
-    {
-        return type($this->getDiskConfig('bucket'))->asString();
-    }
-
-    /**
-     * Validate the incoming request.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return array<string,mixed>
-     */
-    public function validate($request)
-    {
-        return Validator::make(
-            $request->all(),
-            $this->getValidationRules(),
-            $this->getValidationMessages(),
-            $this->getValidationAttributes(),
-        )->validate();
-    }
-
-    /**
-     * Get the validation rules for file uploads.
-     *
-     * @return array<string,array<int,mixed>>
-     */
-    public function getValidationRules()
-    {
-        $min = $this->getMinSize();
-        $max = $this->getMaxSize();
-
-        return [
-            'name' => ['required', 'string', 'max:1024'],
-            'type' => ['required', new OfType($this->getAccepted())],
-            'size' => ['required', 'integer', 'min:'.$min, 'max:'.$max],
-            'meta' => ['nullable'],
-        ];
-    }
-
-    /**
-     * Get the validation messages for file uploads.
-     *
-     * @return array<string,string>
-     */
-    public function getValidationMessages()
-    {
-        $min = $this->getMinSize(false);
-        $max = $this->getMaxSize(false);
-
-        return [
-            'size.min' => \sprintf(
-                'The :attribute must be larger than %d %s.',
-                $min,
-                $min === 1 ? rtrim($this->getUnit(), 's') : $this->getUnit()
-            ),
-            'size.max' => \sprintf(
-                'The :attribute must be smaller than %d %s.',
-                $max,
-                $max === 1 ? rtrim($this->getUnit(), 's') : $this->getUnit()
-            ),
-        ];
-    }
-
-    /**
-     * Get the attributes for the request.
-     *
-     * @return array<string,string>
-     */
-    public function getValidationAttributes()
-    {
-        return [
-            'name' => 'file name',
-            'type' => 'file type',
-            'size' => 'file size',
-        ];
-    }
-
-    /**
-     * Create a signed upload URL response.
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function create()
-    {
-        $request = $this->getRequest();
-
-        /**
-         * @var array{name:string,type:string,size:int,meta:mixed}
-         */
-        $validated = $this->validate($request);
-
-        $key = $this->buildStorageKey($validated);
-
-        $postObject = new PostObjectV4(
-            $this->getClient(),
-            $this->getBucket(),
-            $this->getFormInputs($key),
-            $this->getOptions($key),
-            $this->getDuration()
-        );
-
-        return response()->json([
-            'code' => 200,
-            'attributes' => $postObject->getFormAttributes(),
-            'inputs' => $postObject->getFormInputs(),
-        ]);
-    }
-
-    /**
      * Build the storage key path for the uploaded file.
      *
-     * @param  array{name:string,type:string,size:int,meta:mixed}  $validated
+     * @param  \Honed\Upload\UploadData  $data
      * @return string
      */
-    public function buildStorageKey($validated)
+    public function createKey($data)
     {
-        /** @var string */
-        $filename = Arr::get($validated, 'name');
-
         $name = $this->getName();
 
-        /** @var string */
-        $validatedName = match (true) {
-            $name === 'uuid' => Str::uuid()->toString(),
-            $name instanceof \Closure => type($this->evaluateValidated($name, $validated))->asString(),
-            default => \pathinfo($filename, \PATHINFO_FILENAME),
+        $filename = match (true) {
+            $this->isAnonymized() => Str::uuid()->toString(),
+            $name instanceof \Closure => type($this->evaluateValidated($name, $data))->asString(),
+            default => $data->name,
         };
 
-        $path = $this->evaluateValidated($this->getPath(), $validated);
+        $path = $this->evaluateValidated($this->getPath(), $data);
 
-        return Str::of($validatedName)
-            ->append('.', \pathinfo($filename, \PATHINFO_EXTENSION))
-            ->when($path, fn (Stringable $name) => $name
-                ->prepend($path, '/') // @phpstan-ignore-line
+        return Str::of($filename)
+            ->append('.', $data->extension)
+            ->when($path, fn (Stringable $name, $path) => $name
+                ->prepend($path, '/')
                 ->replace('//', '/'),
-            )->toString();
+            )->trim('/')
+            ->value();
     }
 
     /**
      * Evaluate the closure using the validated data
      *
      * @param  \Closure|string|null  $closure
-     * @param  array{name:string,type:string,size:int,meta:mixed}  $validated
+     * @param  \Honed\Upload\UploadData  $data
      * @return string|null
      */
-    protected function evaluateValidated($closure, $validated)
+    protected function evaluateValidated($closure, $data)
     {
         return $this->evaluate($closure, [
-            'data' => $validated,
-            'validated' => $validated,
-            'name' => Arr::get($validated, 'name'),
-            'type' => Arr::get($validated, 'type'),
-            'size' => Arr::get($validated, 'size'),
-            'meta' => Arr::get($validated, 'meta'),
+            'data' => $data,
+            'name' => $data->name,
+            'extension' => $data->extension,
+            'type' => $data->type,
+            'size' => $data->size,
+            'meta' => $data->meta,
+        ], [
+            UploadData::class => $data,
         ]);
     }
 
     /**
-     * Get the upload as form input attributes.
+     * Validate the incoming request.
      *
-     * @return array<string,mixed>
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \Honed\Upload\UploadRule|null  $rule
+     * @return \Honed\Upload\UploadData
+     *
+     * @throws \Illuminate\Validation\ValidationException
+     */
+    public function validate($request, $rule = null)
+    {
+        $rules = $rule ? $rule->createRules() : $this->createRules();
+
+        $validated = Validator::make(
+            $request->all(),
+            $rules,
+            [],
+            $this->getAttributes(),
+        )->validate();
+
+        return UploadData::from($validated);
+    }
+
+    /**
+     * Get the attributes for the validator.
+     *
+     * @return array<string,string>
+     */
+    public function getAttributes()
+    {
+        return [
+            'name' => 'file name',
+            'extension' => 'file extension',
+            'type' => 'file type',
+            'size' => 'file size',
+        ];
+    }
+
+    /**
+     * Create a presigned POST URL using.
+     *
+     * @param  \Illuminate\Http\Request|null  $request
+     * @return array{attributes:array<string,mixed>,inputs:array<string,mixed>}
+     *
+     * @throws \Illuminate\Validation\ValidationException
+     */
+    public function create($request = null)
+    {
+        $request ??= $this->getRequest();
+
+        [$name, $extension] =
+            static::destructureFilename($request->input('name'));
+
+        $request->merge([
+            'name' => $name,
+            'extension' => $extension,
+        ])->all();
+
+        $rule = Arr::first(
+            $this->getRules(),
+            static fn (UploadRule $rule) => $rule->isMatching($request->input('type'), $extension),
+        );
+
+        $validated = $this->validate($request, $rule);
+
+        $key = $this->createKey($validated);
+
+        $postObject = new PostObjectV4(
+            $this->getClient(),
+            $this->getBucket(),
+            $this->getFormInputs($key),
+            $this->getOptions($key),
+            $this->getExpiry()
+        );
+
+        return [
+            'attributes' => $postObject->getFormAttributes(),
+            'inputs' => $postObject->getFormInputs(),
+        ];
+    }
+
+    /**
+     * {@inheritdoc}
      */
     public function toArray()
     {
-        // Format the types to be a comma separated string
-        $accepts = implode(',', \array_map(
-            static fn (string $type) => \str_ends_with($type, '/')
-                ? $type.'*'
-                : $type,
-            $this->getAccepted()
-        ));
+        return [];
+    }
+
+    /**
+     * Create a response for the upload.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function toResponse($request)
+    {
+        $presign = $this->create($request);
+
+        return response()->json($presign);
+    }
+
+    /**
+     * Destructure the filename into its components.
+     *
+     * @param  mixed  $filename
+     * @return ($filename is string ? array{string, string} : array{null, null})
+     */
+    public static function destructureFilename($filename)
+    {
+        if (! \is_string($filename)) {
+            return [null, null];
+        }
 
         return [
-            'multiple' => $this->isMultiple(),
-            'accept' => $accepts,
+            \pathinfo($filename, PATHINFO_FILENAME),
+            \mb_strtolower(\pathinfo($filename, PATHINFO_EXTENSION)),
         ];
     }
 }
