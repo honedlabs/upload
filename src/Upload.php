@@ -17,9 +17,6 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Support\Stringable;
 
-/**
- * @extends \Honed\Core\Primitive<string,mixed>
- */
 class Upload extends Primitive implements Responsable
 {
     use HasRequest;
