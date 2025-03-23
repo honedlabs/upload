@@ -73,7 +73,6 @@ class Upload extends Primitive implements Responsable
     public function __construct(Request $request)
     {
         parent::__construct();
-
         $this->request($request);
     }
 
@@ -242,7 +241,7 @@ class Upload extends Primitive implements Responsable
      */
     public static function isAnonymizedByDefault()
     {
-        return (bool) config('upload.anonymize_name', false);
+        return (bool) config('upload.anonymize', false);
     }
 
     /**
@@ -269,7 +268,7 @@ class Upload extends Primitive implements Responsable
     }
 
     /**
-     * Get the access control list to use for the file from the config.
+     * Get the default access control list to use for the file.
      *
      * @return string
      */
