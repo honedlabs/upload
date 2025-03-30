@@ -14,8 +14,8 @@ use Illuminate\Contracts\Support\Responsable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Number;
 use Illuminate\Support\Str;
-use Illuminate\Support\Stringable;
 
 class Upload extends Primitive implements Responsable
 {
@@ -28,6 +28,13 @@ class Upload extends Primitive implements Responsable
      * @var string|null
      */
     protected $disk;
+
+    /**
+     * The upload data to use from the request.
+     *
+     * @var \Honed\Upload\UploadData|null
+     */
+    protected $data;
 
     /**
      * Get the configuration rules for validating file uploads.
@@ -63,6 +70,27 @@ class Upload extends Primitive implements Responsable
      * @var string|null
      */
     protected $acl;
+
+    /**
+     * The additional data to return with the presign response.
+     *
+     * @var mixed
+     */
+    protected $returns = null;
+
+    /**
+     * Whether the upload accepts multiple files.
+     *
+     * @var bool
+     */
+    protected $multiple = false;
+
+    /**
+     * Whether to only return the upload message.
+     *
+     * @var bool
+     */
+    protected $message = false;
 
     /**
      * Create a new upload instance.
@@ -157,7 +185,7 @@ class Upload extends Primitive implements Responsable
     /**
      * Set the path to store the file at.
      *
-     * @param  string  $path
+     * @param  string|\Closure(mixed...):string  $path
      * @return $this
      */
     public function path($path)
@@ -275,6 +303,107 @@ class Upload extends Primitive implements Responsable
     }
 
     /**
+     * Set additiional data to return with the presign response.
+     *
+     * @param  mixed  $return
+     * @return $this
+     */
+    public function shouldReturn($return)
+    {
+        $this->returns = $return;
+
+        return $this;
+    }
+
+    /**
+     * Get the additional data to return with the presign response.
+     *
+     * @return mixed
+     */
+    public function getReturns()
+    {
+        return $this->evaluate($this->returns);
+    }
+
+    /**
+     * Set whether the upload accepts multiple files.
+     *
+     * @param  bool  $multiple
+     * @return $this
+     */
+    public function multiple($multiple = true)
+    {
+        $this->multiple = $multiple;
+
+        return $this;
+    }
+
+    /**
+     * Determine whether the upload accepts multiple files.
+     *
+     * @return bool
+     */
+    public function isMultiple()
+    {
+        return $this->multiple;
+    }
+
+    /**
+     * Set whether to only return the upload message.
+     *
+     * @param  bool  $message
+     * @return $this
+     */
+    public function message($message = true)
+    {
+        $this->message = $message;
+
+        return $this;
+    }
+
+    /**
+     * Determine whether to only return the upload message.
+     *
+     * @return bool
+     */
+    public function onlyMessage()
+    {
+        return $this->message;
+    }
+
+    /**
+     * Create the upload message.
+     *
+     * @return string
+     */
+    public function getMessage()
+    {
+        $extensions = $this->getExtensions();
+        $mimes = $this->getMimeTypes();
+
+        $numMimes = \count($mimes);
+        $numExts = \count($extensions);
+
+        $typed = match (true) {
+            $numExts > 0 && $numExts < 4 => \implode(', ', \array_map(
+                static fn ($ext) => \mb_strtoupper(\trim($ext)),
+                $extensions
+            )),
+
+            $numMimes > 0 && $numMimes < 4 => \ucfirst(\implode(', ', \array_map(
+                static fn ($mime) => \trim($mime, ' /'),
+                $mimes
+            ))),
+
+            $this->isMultiple() => 'Files',
+
+            default => 'A single file',
+        };
+
+        return $typed.' up to '.Number::fileSize($this->getMax());
+    }
+
+    /**
      * Get the S3 client to use for uploading files.
      *
      * @return \Aws\S3\S3Client
@@ -306,6 +435,24 @@ class Upload extends Primitive implements Responsable
     }
 
     /**
+     * Destructure the filename into its components.
+     *
+     * @param  mixed  $filename
+     * @return ($filename is string ? array{string, string} : array{null, null})
+     */
+    public static function destructureFilename($filename)
+    {
+        if (! \is_string($filename)) {
+            return [null, null];
+        }
+
+        return [
+            \pathinfo($filename, PATHINFO_FILENAME),
+            \mb_strtolower(\pathinfo($filename, PATHINFO_EXTENSION)),
+        ];
+    }
+
+    /**
      * Get the defaults for form input fields.
      *
      * @param  string  $key
@@ -323,7 +470,7 @@ class Upload extends Primitive implements Responsable
      * Get the policy condition options for the request.
      *
      * @param  string  $key
-     * @return array<int,array<int|string,mixed>>
+     * @return array<int,array<string|int,mixed>>
      */
     public function getOptions($key)
     {
@@ -334,7 +481,7 @@ class Upload extends Primitive implements Responsable
             ['content-length-range', $this->getMin(), $this->getMax()],
         ];
 
-        $mimes = $this->getMimes();
+        $mimes = $this->getMimeTypes();
 
         if (filled($mimes)) {
             $options[] = ['starts-with', '$Content-Type', \implode(',', $mimes)];
@@ -351,44 +498,25 @@ class Upload extends Primitive implements Responsable
      */
     public function createKey($data)
     {
-        $name = $this->getName();
+        return once(function () use ($data) {
+            $name = $this->getName();
 
-        $filename = match (true) {
-            $this->isAnonymized() => Str::uuid()->toString(),
-            $name instanceof \Closure => type($this->evaluateValidated($name, $data))->asString(),
-            default => $data->name,
-        };
+            $filename = match (true) {
+                $this->isAnonymized() => Str::uuid()->toString(),
+                isset($name) => $this->evaluate($name),
+                default => $data->name,
+            };
 
-        $path = $this->evaluateValidated($this->getPath(), $data);
+            $path = $this->evaluate($this->getPath());
 
-        return Str::of($filename)
-            ->append('.', $data->extension)
-            ->when($path, fn (Stringable $name, $path) => $name
-                ->prepend($path, '/')
-                ->replace('//', '/'),
-            )->trim('/')
-            ->value();
-    }
-
-    /**
-     * Evaluate the closure using the validated data
-     *
-     * @param  \Closure|string|null  $closure
-     * @param  \Honed\Upload\UploadData  $data
-     * @return string|null
-     */
-    protected function evaluateValidated($closure, $data)
-    {
-        return $this->evaluate($closure, [
-            'data' => $data,
-            'name' => $data->name,
-            'extension' => $data->extension,
-            'type' => $data->type,
-            'size' => $data->size,
-            'meta' => $data->meta,
-        ], [
-            UploadData::class => $data,
-        ]);
+            return Str::of($filename)
+                ->append('.', $data->extension)
+                ->when($path, fn ($name, $path) => $name
+                    ->prepend($path, '/')
+                    ->replace('//', '/'),
+                )->trim('/')
+                ->value();
+        });
     }
 
     /**
@@ -449,26 +577,30 @@ class Upload extends Primitive implements Responsable
             'extension' => $extension,
         ])->all();
 
+        /** @var string|null */
+        $type = $request->input('type');
+
         $rule = Arr::first(
             $this->getRules(),
-            static fn (UploadRule $rule) => $rule->isMatching($request->input('type'), $extension),
+            static fn (UploadRule $rule) => $rule->isMatching($type, $extension),
         );
 
-        $validated = $this->validate($request, $rule);
+        $this->data = $this->validate($request, $rule);
 
-        $key = $this->createKey($validated);
+        $key = $this->createKey($this->data);
 
         $postObject = new PostObjectV4(
             $this->getClient(),
             $this->getBucket(),
             $this->getFormInputs($key),
             $this->getOptions($key),
-            $this->getExpiry()
+            $rule ? $rule->getExpiry() : $this->getExpiry()
         );
 
         return [
             'attributes' => $postObject->getFormAttributes(),
             'inputs' => $postObject->getFormInputs(),
+            'data' => $this->getReturns(),
         ];
     }
 
@@ -477,7 +609,20 @@ class Upload extends Primitive implements Responsable
      */
     public function toArray()
     {
-        return [];
+        $data = [
+            'multiple' => $this->isMultiple(),
+            'message' => $this->getMessage(),
+        ];
+
+        if ($this->onlyMessage()) {
+            return $data;
+        }
+
+        return \array_merge($data, [
+            'extensions' => $this->getExtensions(),
+            'mimes' => $this->getMimeTypes(),
+            'size' => $this->getMax(),
+        ]);
     }
 
     /**
@@ -494,20 +639,33 @@ class Upload extends Primitive implements Responsable
     }
 
     /**
-     * Destructure the filename into its components.
-     *
-     * @param  mixed  $filename
-     * @return ($filename is string ? array{string, string} : array{null, null})
+     * {@inheritdoc}
      */
-    public static function destructureFilename($filename)
+    protected function resolveDefaultClosureDependencyForEvaluationByName($parameterName)
     {
-        if (! \is_string($filename)) {
-            return [null, null];
+        $data = $this->data;
+
+        return match ($parameterName) {
+            'data' => [$data],
+            'key' => [$data ? $this->createKey($data) : null],
+            'name' => [$data?->name],
+            'extension' => [$data?->extension],
+            'type' => [$data?->type],
+            'size' => [$data?->size],
+            'meta' => [$data?->meta],
+            default => parent::resolveDefaultClosureDependencyForEvaluationByName($parameterName),
+        };
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function resolveDefaultClosureDependencyForEvaluationByType($parameterType)
+    {
+        if ($parameterType === UploadData::class && isset($this->data)) {
+            return [$this->data];
         }
 
-        return [
-            \pathinfo($filename, PATHINFO_FILENAME),
-            \mb_strtolower(\pathinfo($filename, PATHINFO_EXTENSION)),
-        ];
+        return parent::resolveDefaultClosureDependencyForEvaluationByType($parameterType);
     }
 }

@@ -20,7 +20,7 @@ it('has expiry', function () {
 
 it('formats expiry', function () {
     expect($this->test->expiresIn(10)->formatExpiry())
-        ->toBe('+10 seconds');
+        ->toBe('+10 minutes');
 });
 
 it('has max', function () {
@@ -37,51 +37,6 @@ it('has min', function () {
         ->min(1000)->toBe($this->test)
         ->getMin()->toBe(1000)
         ->getDefaultMin()->toBe(config('upload.min_size'));
-});
-
-it('has types', function () {
-    expect($this->test)
-        ->getTypes()->toBeEmpty()
-        ->types('image/png', 'image/jpeg')->toBe($this->test)
-        ->getTypes()->toBe(['image/png', 'image/jpeg'])
-        ->types(['image/gif'])->toBe($this->test)
-        ->getTypes()->toBe(['image/png', 'image/jpeg', 'image/gif']);
-});
-
-it('sets types to only images', function () {
-    expect($this->test->onlyImages())
-        ->getTypes()->toEqual([
-            'image/',
-        ]);
-});
-
-it('sets types to only videos', function () {
-    expect($this->test->onlyVideos())
-        ->getTypes()->toEqual([
-            'video/',
-        ]);
-});
-
-it('sets types to only audio', function () {
-    expect($this->test->onlyAudio())
-        ->getTypes()->toEqual([
-            'audio/',
-        ]);
-});
-
-it('sets types to only pdf', function () {
-    expect($this->test->onlyPdf())
-        ->getTypes()->toEqual([
-            'application/pdf',
-            '.pdf',
-        ]);
-});
-
-it('separates mimes and extensions', function () {
-    expect($this->test)
-        ->types('image/png', '.jpeg')->toBe($this->test)
-        ->getMimes()->toBe(['image/png'])
-        ->getExtensions()->toBe(['.jpeg']); 
 });
 
 it('creates rules', function () {

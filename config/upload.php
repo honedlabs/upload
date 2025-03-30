@@ -39,12 +39,12 @@ return [
     | Request duration
     |--------------------------------------------------------------------------
     |
-    | You can globally specify the expiration time for your upload requests.
-    | This will be used to validate the expiration time of the request to the
-    | upload endpoint.
+    | You can globally specify the expiration time for your upload requests in
+    | minutes. This will be used to validate the expiration time of the request
+    | to the upload endpoint.
     */
 
-    'expires' => 120,
+    'expires' => 2,
 
     /*
     |--------------------------------------------------------------------------

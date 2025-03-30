@@ -13,23 +13,35 @@ class UploadRule
     /**
      * Create a new file rule instance.
      *
-     * @param  string  $types
      * @return static
      */
-    public static function make(...$types)
+    public static function make()
     {
-        return resolve(static::class)
-            ->types($types);
+        return resolve(static::class);
     }
 
     /**
      * Determine if the given type matches this rule.
      *
-     * @param  mixed  ...$types
+     * @param  mixed  $mime
+     * @param  mixed  $extension
      * @return bool
      */
-    public function isMatching(...$types)
+    public function isMatching($mime, $extension)
     {
-        return \count(\array_intersect($this->getTypes(), $types)) > 0;
+        $mime = \is_string($mime) ? \mb_strtolower(\trim($mime)) : $mime;
+        $extension = \is_string($extension) ? \mb_strtolower(\trim($extension)) : $extension;
+
+        if (\in_array($extension, $this->getExtensions())) {
+            return true;
+        }
+
+        foreach ($this->getMimeTypes() as $type) {
+            if (\is_string($mime) && \str_starts_with($mime, $type)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

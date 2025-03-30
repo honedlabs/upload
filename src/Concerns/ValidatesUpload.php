@@ -10,7 +10,7 @@ use Illuminate\Support\Number;
 trait ValidatesUpload
 {
     /**
-     * The expiry duration of the request in seconds.
+     * The expiry duration of the request in minutes.
      *
      * @var int|null
      */
@@ -31,27 +31,34 @@ trait ValidatesUpload
     protected $min;
 
     /**
-     * List of the file mime types and extensions.
+     * The accepted file mime types.
      *
      * @var array<int, string>
      */
-    protected $types = [];
+    protected $mimeTypes = [];
 
     /**
-     * Set the expiry duration of the request in seconds.
+     * The accepted file extensions.
      *
-     * @param  int  $seconds
+     * @var array<int, string>
+     */
+    protected $extensions = [];
+
+    /**
+     * Set the expiry duration of the request in minutes.
+     *
+     * @param  int  $minutes
      * @return $this
      */
-    public function expiresIn($seconds)
+    public function expiresIn($minutes)
     {
-        $this->expires = $seconds;
+        $this->expires = $minutes;
 
         return $this;
     }
 
     /**
-     * Get the expiry duration of the request in seconds.
+     * Get the expiry duration of the request in minutes.
      *
      * @return int
      */
@@ -61,13 +68,13 @@ trait ValidatesUpload
     }
 
     /**
-     * Get the default expiry duration of the request in seconds.
+     * Get the default expiry duration of the request in minutes.
      *
      * @return int
      */
     public static function getDefaultExpiry()
     {
-        return type(config('upload.expires', 120))->asInt();
+        return type(config('upload.expires', 2))->asInt();
     }
 
     /**
@@ -77,7 +84,7 @@ trait ValidatesUpload
      */
     public function formatExpiry()
     {
-        return \sprintf('+%d seconds', \abs($this->getExpiry()));
+        return \sprintf('+%d minutes', \abs($this->getExpiry()));
     }
 
     /**
@@ -143,102 +150,63 @@ trait ValidatesUpload
      */
     public static function getDefaultMin()
     {
-        return type(config('upload.min_size', 0))->asInt();
+        return type(config('upload.min_size', 1))->asInt();
     }
 
     /**
-     * Set the file mime types and extensions.
+     * Set the accepted file mime types.
      *
      * @param  string|iterable<int,string>  ...$types
      * @return $this
      */
-    public function types(...$types)
+    public function mimes(...$types)
     {
-        $types = Arr::flatten($types);
+        $types = \array_map(
+            static fn ($type) => rtrim(\mb_strtolower(\trim($type, ' *')), '/').'/',
+            Arr::flatten($types)
+        );
 
-        $this->types = \array_merge($this->types, $types);
+        $this->mimeTypes = \array_merge($this->mimeTypes, $types);
 
         return $this;
     }
 
     /**
-     * Set the upload to only accept images.
-     *
-     * @return $this
-     */
-    public function onlyImages()
-    {
-        return $this->types('image/');
-    }
-
-    /**
-     * Set the upload to only accept videos.
-     *
-     * @return $this
-     */
-    public function onlyVideos()
-    {
-        return $this->types('video/');
-    }
-
-    /**
-     * Set the upload to only accept audio.
-     *
-     * @return $this
-     */
-    public function onlyAudio()
-    {
-        return $this->types('audio/');
-    }
-
-    /**
-     * Set the upload to only accept PDF files.
-     *
-     * @return $this
-     */
-    public function onlyPdf()
-    {
-        return $this->types('application/pdf', '.pdf');
-    }
-
-    /**
-     * Get the accepted file mime types and extensions.
+     * Get the accepted file mime types.
      *
      * @return array<int, string>
      */
-    public function getTypes()
+    public function getMimeTypes()
     {
-        return $this->types;
+        return $this->mimeTypes;
     }
 
     /**
-     * Get the file mime types.
+     * Set the accepted file extensions.
      *
-     * @return array<int, string>
+     * @param  string|iterable<int,string>  ...$extensions
+     * @return $this
      */
-    public function getMimes()
+    public function extensions(...$extensions)
     {
-        return \array_values(
-            \array_filter(
-                $this->getTypes(),
-                static fn ($type) => ! \str_starts_with($type, '.')
-            )
+        $extensions = \array_map(
+            static fn ($ext) => \mb_strtolower(\trim($ext, ' .')),
+            Arr::flatten($extensions)
         );
+
+        $this->extensions = \array_merge($this->extensions, $extensions);
+
+        return $this;
     }
 
     /**
-     * Get the file extensions.
+     * Get the accepted file extensions.
      *
      * @return array<int, string>
      */
     public function getExtensions()
     {
-        return \array_values(
-            \array_filter(
-                $this->getTypes(),
-                static fn ($type) => \str_starts_with($type, '.')
-            )
-        );
+        return $this->extensions;
     }
 
     /**
@@ -249,7 +217,11 @@ trait ValidatesUpload
     public function createRules()
     {
         return [
-            'name' => ['required', 'string', 'max:1024'],
+            'name' => [
+                'required',
+                'string',
+                'max:1024',
+            ],
             'extension' => [
                 'required',
                 'string',
@@ -271,19 +243,19 @@ trait ValidatesUpload
                 'required',
                 'integer',
                 function (string $attribute, int $value, \Closure $fail) {
-                    $min = $this->getMin();
-
-                    if ($value < $min) {
-                        $fail(__('upload::messages.min_size', [
-                            'size' => Number::fileSize($min),
-                        ]));
-                    }
-
                     $max = $this->getMax();
 
                     if ($value > $max) {
                         $fail(__('upload::messages.max_size', [
                             'size' => Number::fileSize($max),
+                        ]));
+                    }
+
+                    $min = $this->getMin();
+
+                    if ($value < $min) {
+                        $fail(__('upload::messages.min_size', [
+                            'size' => Number::fileSize($min),
                         ]));
                     }
                 },
@@ -292,7 +264,7 @@ trait ValidatesUpload
                 'required',
                 'string',
                 function (string $attribute, string $value, \Closure $fail) {
-                    $types = $this->getMimes();
+                    $types = $this->getMimeTypes();
 
                     if (! filled($types)) {
                         return;
