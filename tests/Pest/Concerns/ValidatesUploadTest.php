@@ -19,7 +19,7 @@ it('has expiry', function () {
 });
 
 it('formats expiry', function () {
-    expect($this->test->expiresIn(10)->formatExpiry())
+    expect($this->test->formatExpiry(10))
         ->toBe('+10 minutes');
 });
 
@@ -37,6 +37,19 @@ it('has min', function () {
         ->min(1000)->toBe($this->test)
         ->getMin()->toBe(1000)
         ->getDefaultMin()->toBe(config('upload.min_size'));
+});
+
+it('has mime types', function () {
+    expect($this->test)
+        ->getMimeTypes()->toBeEmpty()
+        ->mimes('image/png')->toBe($this->test)
+        ->getMimeTypes()->toBe(['image/png']);
+
+    // Ensure it adds/removes the end /
+});
+
+it('has extensions', function () {
+
 });
 
 it('creates rules', function () {

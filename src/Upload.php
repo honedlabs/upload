@@ -5,29 +5,23 @@ declare(strict_types=1);
 namespace Honed\Upload;
 
 use Aws\S3\PostObjectV4;
-use Aws\S3\S3Client;
 use Honed\Core\Concerns\HasRequest;
 use Honed\Core\Primitive;
+use Honed\Upload\Concerns\DispatchesPresignEvents;
+use Honed\Upload\Concerns\HasFilePath;
 use Honed\Upload\Concerns\ValidatesUpload;
-use Honed\Upload\Contracts\AnonymizesName;
 use Illuminate\Contracts\Support\Responsable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Number;
-use Illuminate\Support\Str;
 
 class Upload extends Primitive implements Responsable
 {
+    use DispatchesPresignEvents;
+    use HasFilePath;
     use HasRequest;
     use ValidatesUpload;
-
-    /**
-     * The disk to retrieve the S3 credentials from.
-     *
-     * @var string|null
-     */
-    protected $disk;
 
     /**
      * The upload data to use from the request.
@@ -42,27 +36,6 @@ class Upload extends Primitive implements Responsable
      * @var array<int, \Honed\Upload\UploadRule>
      */
     protected $rules = [];
-
-    /**
-     * The path prefix to store the file in
-     *
-     * @var string|\Closure(mixed...):string|null
-     */
-    protected $path;
-
-    /**
-     * The name of the file to be stored.
-     *
-     * @var string|\Closure(mixed...):string|null
-     */
-    protected $name;
-
-    /**
-     * Whether the file name should be anonymized using a UUID.
-     *
-     * @var bool|null
-     */
-    protected $anonymize;
 
     /**
      * The access control list to use for the file.
@@ -104,7 +77,7 @@ class Upload extends Primitive implements Responsable
     /**
      * Create a new upload instance.
      *
-     * @param  string  $disk
+     * @param  string|null  $disk
      * @return static
      */
     public static function make($disk = null)
@@ -122,39 +95,6 @@ class Upload extends Primitive implements Responsable
     public static function into($disk)
     {
         return static::make($disk);
-    }
-
-    /**
-     * Set the disk to retrieve the S3 credentials from.
-     *
-     * @param  string  $disk
-     * @return $this
-     */
-    public function disk($disk)
-    {
-        $this->disk = $disk;
-
-        return $this;
-    }
-
-    /**
-     * Get the S3 disk to use for uploading files.
-     *
-     * @return string
-     */
-    public function getDisk()
-    {
-        return $this->disk ?? static::getDefaultDisk();
-    }
-
-    /**
-     * Get the disk to use for uploading files from the config.
-     *
-     * @return string
-     */
-    public static function getDefaultDisk()
-    {
-        return type(config('upload.disk', 's3'))->asString();
     }
 
     /**
@@ -180,93 +120,6 @@ class Upload extends Primitive implements Responsable
     public function getRules()
     {
         return $this->rules;
-    }
-
-    /**
-     * Set the path to store the file at.
-     *
-     * @param  string|\Closure(mixed...):string  $path
-     * @return $this
-     */
-    public function path($path)
-    {
-        $this->path = $path;
-
-        return $this;
-    }
-
-    /**
-     * Get the path to store the file at.
-     *
-     * @return string|\Closure(mixed...):string|null
-     */
-    public function getPath()
-    {
-        return $this->path;
-    }
-
-    /**
-     * Set the name, or method, of generating the name of the file to be stored.
-     *
-     * @param  \Closure(mixed...):string|string  $name
-     * @return $this
-     */
-    public function name($name)
-    {
-        $this->name = $name;
-
-        return $this;
-    }
-
-    /**
-     * Get the name, or method, of generating the name of the file to be stored.
-     *
-     * @return \Closure(mixed...):string|string|null
-     */
-    public function getName()
-    {
-        return $this->name;
-    }
-
-    /**
-     * Set whether to anonymize the file name using a UUID.
-     *
-     * @param  bool  $anonymize
-     * @return $this
-     */
-    public function anonymize($anonymize = true)
-    {
-        $this->anonymize = $anonymize;
-
-        return $this;
-    }
-
-    /**
-     * Determine whether the file name should be anonymized using a UUID.
-     *
-     * @return bool
-     */
-    public function isAnonymized()
-    {
-        if (isset($this->anonymize)) {
-            return $this->anonymize;
-        }
-
-        if ($this instanceof AnonymizesName) {
-            return true;
-        }
-
-        return static::isAnonymizedByDefault();
-    }
-
-    /**
-     * Determine if the file name should be anonymized using a UUID by default.
-     *
-     * @return bool
-     */
-    public static function isAnonymizedByDefault()
-    {
-        return (bool) config('upload.anonymize', false);
     }
 
     /**
@@ -404,25 +257,6 @@ class Upload extends Primitive implements Responsable
     }
 
     /**
-     * Get the S3 client to use for uploading files.
-     *
-     * @return \Aws\S3\S3Client
-     */
-    public function getClient()
-    {
-        $disk = $this->getDisk();
-
-        return new S3Client([
-            'version' => 'latest',
-            'region' => config("filesystems.disks.{$disk}.region"),
-            'credentials' => [
-                'key' => config("filesystems.disks.{$disk}.key"),
-                'secret' => config("filesystems.disks.{$disk}.secret"),
-            ],
-        ]);
-    }
-
-    /**
      * Get the S3 bucket to use for uploading files.
      *
      * @return string
@@ -432,24 +266,6 @@ class Upload extends Primitive implements Responsable
         $disk = $this->getDisk();
 
         return type(config("filesystems.disks.{$disk}.bucket"))->asString();
-    }
-
-    /**
-     * Destructure the filename into its components.
-     *
-     * @param  mixed  $filename
-     * @return ($filename is string ? array{string, string} : array{null, null})
-     */
-    public static function destructureFilename($filename)
-    {
-        if (! \is_string($filename)) {
-            return [null, null];
-        }
-
-        return [
-            \pathinfo($filename, PATHINFO_FILENAME),
-            \mb_strtolower(\pathinfo($filename, PATHINFO_EXTENSION)),
-        ];
     }
 
     /**
@@ -491,55 +307,41 @@ class Upload extends Primitive implements Responsable
     }
 
     /**
-     * Build the storage key path for the uploaded file.
-     *
-     * @param  \Honed\Upload\UploadData  $data
-     * @return string
-     */
-    public function createKey($data)
-    {
-        return once(function () use ($data) {
-            $name = $this->getName();
-
-            $filename = match (true) {
-                $this->isAnonymized() => Str::uuid()->toString(),
-                isset($name) => $this->evaluate($name),
-                default => $data->name,
-            };
-
-            $path = $this->evaluate($this->getPath());
-
-            return Str::of($filename)
-                ->append('.', $data->extension)
-                ->when($path, fn ($name, $path) => $name
-                    ->prepend($path, '/')
-                    ->replace('//', '/'),
-                )->trim('/')
-                ->value();
-        });
-    }
-
-    /**
      * Validate the incoming request.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \Honed\Upload\UploadRule|null  $rule
-     * @return \Honed\Upload\UploadData
+     * @param  \Illuminate\Http\Request|null  $request
+     * @return array{\Honed\Upload\UploadData, \Honed\Upload\UploadRule|null}
      *
      * @throws \Illuminate\Validation\ValidationException
      */
-    public function validate($request, $rule = null)
+    public function validate($request)
     {
-        $rules = $rule ? $rule->createRules() : $this->createRules();
+        $request ??= $this->getRequest();
+
+        [$name, $extension] =
+            static::destructureFilename($request->input('name'));
+
+        $request->merge([
+            'name' => $name,
+            'extension' => $extension,
+        ])->all();
+
+        $rule = Arr::first(
+            $this->getRules(),
+            static fn (UploadRule $rule) => $rule->isMatching(
+                $request->input('type'),
+                $extension,
+            ),
+        );
 
         $validated = Validator::make(
             $request->all(),
-            $rules,
+            $rule?->createRules() ?? $this->createRules(),
             [],
             $this->getAttributes(),
         )->validate();
 
-        return UploadData::from($validated);
+        return [UploadData::from($validated), $rule];
     }
 
     /**
@@ -567,34 +369,18 @@ class Upload extends Primitive implements Responsable
      */
     public function create($request = null)
     {
-        $request ??= $this->getRequest();
+        [$data, $rule] = $this->validate($request);
 
-        [$name, $extension] =
-            static::destructureFilename($request->input('name'));
+        $this->data = $data;
 
-        $request->merge([
-            'name' => $name,
-            'extension' => $extension,
-        ])->all();
-
-        /** @var string|null */
-        $type = $request->input('type');
-
-        $rule = Arr::first(
-            $this->getRules(),
-            static fn (UploadRule $rule) => $rule->isMatching($type, $extension),
-        );
-
-        $this->data = $this->validate($request, $rule);
-
-        $key = $this->createKey($this->data);
+        $key = $this->createKey($data);
 
         $postObject = new PostObjectV4(
             $this->getClient(),
             $this->getBucket(),
             $this->getFormInputs($key),
             $this->getOptions($key),
-            $rule ? $rule->getExpiry() : $this->getExpiry()
+            $this->formatExpiry($rule ? $rule->getExpiry() : $this->getExpiry())
         );
 
         return [
@@ -648,6 +434,9 @@ class Upload extends Primitive implements Responsable
         return match ($parameterName) {
             'data' => [$data],
             'key' => [$data ? $this->createKey($data) : null],
+            'file' => [$data ? $this->createFilename($data).'.'.$data->extension : null],
+            'filename' => [$data ? $this->createFilename($data) : null],
+            'bucket' => [$this->getBucket()],
             'name' => [$data?->name],
             'extension' => [$data?->extension],
             'type' => [$data?->type],

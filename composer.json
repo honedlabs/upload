@@ -19,10 +19,10 @@
     ],
     "require": {
         "php": "^8.2",
-        "aws/aws-sdk-php": "^3.340",
         "honed/core": "^0.21.0",
         "illuminate/contracts": "^11.0||^12.0",
         "illuminate/support": "^11.0||^12.0",
+        "league/flysystem-aws-s3-v3": "^3.0",
         "pinkary-project/type-guard": "^0.1.0"
     },
     "require-dev": {

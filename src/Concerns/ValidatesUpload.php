@@ -80,11 +80,12 @@ trait ValidatesUpload
     /**
      * Format the expiry duration of the request.
      *
+     * @param  int  $expiry
      * @return string
      */
-    public function formatExpiry()
+    public function formatExpiry($expiry)
     {
-        return \sprintf('+%d minutes', \abs($this->getExpiry()));
+        return \sprintf('+%d minutes', \abs($expiry));
     }
 
     /**
@@ -162,7 +163,7 @@ trait ValidatesUpload
     public function mimes(...$types)
     {
         $types = \array_map(
-            static fn ($type) => rtrim(\mb_strtolower(\trim($type, ' *')), '/').'/',
+            static fn ($type) => rtrim(\mb_strtolower(\trim($type, ' *')), '/'),
             Arr::flatten($types)
         );
 

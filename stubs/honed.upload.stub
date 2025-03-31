@@ -8,6 +8,11 @@ use Honed\Upload\Upload;
 
 final class {{ class }} extends Upload
 {
+    /**
+     * Provide the upload with any necessary setup.
+     *
+     * @return void
+     */
     public function setUp()
     {
         //
