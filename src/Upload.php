@@ -202,6 +202,16 @@ class Upload extends Primitive implements Responsable
     }
 
     /**
+     * Get the upload data.
+     *
+     * @return \Honed\Upload\UploadData|null
+     */
+    public function getData()
+    {
+        return $this->data;
+    }
+
+    /**
      * Set whether to only return the upload message.
      *
      * @param  bool  $message
@@ -431,17 +441,26 @@ class Upload extends Primitive implements Responsable
     {
         $data = $this->data;
 
+        if ($parameterName === 'bucket') {
+            return [$this->getBucket()];
+        }
+
+        if (! $data) {
+            return parent::resolveDefaultClosureDependencyForEvaluationByName($parameterName);
+        }
+
         return match ($parameterName) {
             'data' => [$data],
-            'key' => [$data ? $this->createKey($data) : null],
-            'file' => [$data ? $this->createFilename($data).'.'.$data->extension : null],
-            'filename' => [$data ? $this->createFilename($data) : null],
-            'bucket' => [$this->getBucket()],
-            'name' => [$data?->name],
-            'extension' => [$data?->extension],
-            'type' => [$data?->type],
-            'size' => [$data?->size],
-            'meta' => [$data?->meta],
+            'key' => [$this->createKey($data)],
+            'file' => [$this->createFilename($data).'.'.$data->extension],
+            'filename' => [$this->createFilename($data)],
+            'folder' => [$this->createKey($data)],
+            'name' => [$data->name],
+            'extension' => [$data->extension],
+            'type' => [$data->type],
+            'size' => [$data->size],
+            'meta' => [$data->meta],
+            'disk' => [$this->getDisk()],
             default => parent::resolveDefaultClosureDependencyForEvaluationByName($parameterName),
         };
     }

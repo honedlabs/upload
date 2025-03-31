@@ -222,6 +222,21 @@ trait HasFilePath
     }
 
     /**
+     * Get the immediate folder from a file path, if it exists.
+     *
+     * @param  string  $path
+     * @return string|null
+     */
+    public static function getFolder($path)
+    {
+        return Str::of($path)
+            ->explode('/')
+            ->filter()
+            ->slice(0, -1)
+            ->last();
+    }
+
+    /**
      * Destructure the filename into its components.
      *
      * @param  mixed  $filename
