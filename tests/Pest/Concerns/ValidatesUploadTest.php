@@ -49,7 +49,10 @@ it('has mime types', function () {
 });
 
 it('has extensions', function () {
-
+    expect($this->test)
+        ->getExtensions()->toBeEmpty()
+        ->extensions('png')->toBe($this->test)
+        ->getExtensions()->toBe(['png']);
 });
 
 it('creates rules', function () {

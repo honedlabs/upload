@@ -57,4 +57,16 @@ return [
     */
 
     'acl' => 'public-read',
+
+    /*
+    |--------------------------------------------------------------------------
+    | Anonymize
+    |--------------------------------------------------------------------------
+    |
+    | You can globally enable all files to be anonymized. This will redact the
+    | given filename and replace it with a UUID.
+    */
+
+    'anonymize' => false,
+
 ];

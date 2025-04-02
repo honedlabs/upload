@@ -8,21 +8,21 @@ use Honed\Upload\Contracts\ShouldAnonymize;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
-trait HasFilePath
+trait HasFile
 {
     /**
-     * The disk to retrieve the path credentials from.
+     * The disk to retrieve the location credentials from.
      *
      * @var string|null
      */
     protected $disk;
 
     /**
-     * The path prefix to store the file in
+     * The location prefix to store the file in
      *
      * @var string|\Closure(mixed...):string|null
      */
-    protected $path;
+    protected $location;
 
     /**
      * The name of the file to be stored.
@@ -74,26 +74,40 @@ trait HasFilePath
     }
 
     /**
-     * Set the path to store the file at.
+     * Set the location to store the file at.
      *
-     * @param  string|\Closure(mixed...):string  $path
+     * @param  string|\Closure(mixed...):string  $location
      * @return $this
      */
-    public function path($path)
+    public function location($location)
     {
-        $this->path = $path;
+        $this->location = $location;
 
         return $this;
     }
 
     /**
-     * Get the path to store the file at.
+     * Define the location to store the file at.
      *
      * @return string|\Closure(mixed...):string|null
      */
-    public function getPath()
+    public function locate()
     {
-        return $this->path;
+        return null;
+    }
+
+    /**
+     * Get the location to store the file at.
+     *
+     * @return string|\Closure(mixed...):string|null
+     */
+    public function getLocation()
+    {
+        if (isset($this->location)) {
+            return $this->evaluate($this->location);
+        }
+
+        return $this->locate();
     }
 
     /**
@@ -199,7 +213,7 @@ trait HasFilePath
     }
 
     /**
-     * Build the storage key path for the uploaded file.
+     * Build the storage key location for the uploaded file.
      *
      * @param  \Honed\Upload\UploadData  $data
      * @return string
@@ -209,12 +223,12 @@ trait HasFilePath
         return once(function () use ($data) {
             $filename = $this->createFilename($data);
 
-            $path = $this->evaluate($this->getPath());
+            $location = $this->evaluate($this->getLocation());
 
             return Str::of($filename)
                 ->append('.', $data->extension)
-                ->when($path, fn ($name, $path) => $name
-                    ->prepend($path, '/')
+                ->when($location, fn ($name, $location) => $name
+                    ->prepend($location, '/')
                     ->replace('//', '/'),
                 )->trim('/')
                 ->value();
@@ -222,14 +236,14 @@ trait HasFilePath
     }
 
     /**
-     * Get the immediate folder from a file path, if it exists.
+     * Get the immediate folder from a file location, if it exists.
      *
-     * @param  string  $path
+     * @param  string  $location
      * @return string|null
      */
-    public static function getFolder($path)
+    public static function getFolder($location)
     {
-        return Str::of($path)
+        return Str::of($location)
             ->explode('/')
             ->filter()
             ->slice(0, -1)

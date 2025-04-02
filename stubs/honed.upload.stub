@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace {{ namespace }};
 
 use Honed\Upload\Upload;
+use Honed\Upload\Contracts\DefinesPath;
 
 final class {{ class }} extends Upload
 {

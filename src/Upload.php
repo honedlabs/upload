@@ -8,18 +8,19 @@ use Aws\S3\PostObjectV4;
 use Honed\Core\Concerns\HasRequest;
 use Honed\Core\Primitive;
 use Honed\Upload\Concerns\DispatchesPresignEvents;
-use Honed\Upload\Concerns\HasFilePath;
+use Honed\Upload\Concerns\HasFile;
 use Honed\Upload\Concerns\ValidatesUpload;
 use Illuminate\Contracts\Support\Responsable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Number;
+use Illuminate\Validation\ValidationException;
 
 class Upload extends Primitive implements Responsable
 {
     use DispatchesPresignEvents;
-    use HasFilePath;
+    use HasFile;
     use HasRequest;
     use ValidatesUpload;
 
@@ -82,8 +83,7 @@ class Upload extends Primitive implements Responsable
      */
     public static function make($disk = null)
     {
-        return resolve(static::class)
-            ->disk($disk);
+        return resolve(static::class)->disk($disk);
     }
 
     /**
@@ -100,7 +100,7 @@ class Upload extends Primitive implements Responsable
     /**
      * Set the rules for validating file uploads.
      *
-     * @param  iterable<\Honed\Upload\UploadRule>  ...$rules
+     * @param  \Honed\Upload\UploadRule|iterable<\Honed\Upload\UploadRule>  ...$rules
      * @return $this
      */
     public function rules(...$rules)
@@ -161,7 +161,7 @@ class Upload extends Primitive implements Responsable
      * @param  mixed  $return
      * @return $this
      */
-    public function shouldReturn($return)
+    public function provide($return)
     {
         $this->returns = $return;
 
@@ -169,13 +169,27 @@ class Upload extends Primitive implements Responsable
     }
 
     /**
+     * Define the data that should be provided as part of the presign response.
+     *
+     * @return mixed
+     */
+    public function provides()
+    {
+        return [];
+    }
+
+    /**
      * Get the additional data to return with the presign response.
      *
      * @return mixed
      */
-    public function getReturns()
+    public function getProvided()
     {
-        return $this->evaluate($this->returns);
+        if (isset($this->returns)) {
+            return $this->evaluate($this->returns);
+        }
+
+        return $this->provides();
     }
 
     /**
@@ -300,20 +314,13 @@ class Upload extends Primitive implements Responsable
      */
     public function getOptions($key)
     {
-        $options = [
+        return [
             ['eq', '$acl', $this->getACL()],
             ['eq', '$key', $key],
             ['eq', '$bucket', $this->getBucket()],
             ['content-length-range', $this->getMin(), $this->getMax()],
+            ['eq', '$Content-Type', $this->getData()?->type],
         ];
-
-        $mimes = $this->getMimeTypes();
-
-        if (filled($mimes)) {
-            $options[] = ['starts-with', '$Content-Type', \implode(',', $mimes)];
-        }
-
-        return $options;
     }
 
     /**
@@ -344,14 +351,20 @@ class Upload extends Primitive implements Responsable
             ),
         );
 
-        $validated = Validator::make(
-            $request->all(),
-            $rule?->createRules() ?? $this->createRules(),
-            [],
-            $this->getAttributes(),
-        )->validate();
+        try {
+            $validated = Validator::make(
+                $request->all(),
+                $rule?->createRules() ?? $this->createRules(),
+                [],
+                $this->getAttributes(),
+            )->validate();
 
-        return [UploadData::from($validated), $rule];
+            return [UploadData::from($validated), $rule];
+        } catch (ValidationException $e) {
+            $this->failedPresign($request);
+
+            throw $e;
+        }
     }
 
     /**
@@ -393,10 +406,12 @@ class Upload extends Primitive implements Responsable
             $this->formatExpiry($rule ? $rule->getExpiry() : $this->getExpiry())
         );
 
+        static::createdPresign($data, $this->getDisk());
+
         return [
             'attributes' => $postObject->getFormAttributes(),
             'inputs' => $postObject->getFormInputs(),
-            'data' => $this->getReturns(),
+            'data' => $this->getProvided(),
         ];
     }
 
@@ -439,7 +454,7 @@ class Upload extends Primitive implements Responsable
      */
     protected function resolveDefaultClosureDependencyForEvaluationByName($parameterName)
     {
-        $data = $this->data;
+        $data = $this->getData();
 
         if ($parameterName === 'bucket') {
             return [$this->getBucket()];
@@ -454,7 +469,7 @@ class Upload extends Primitive implements Responsable
             'key' => [$this->createKey($data)],
             'file' => [$this->createFilename($data).'.'.$data->extension],
             'filename' => [$this->createFilename($data)],
-            'folder' => [$this->createKey($data)],
+            'folder' => [$this->getFolder($this->createKey($data))],
             'name' => [$data->name],
             'extension' => [$data->extension],
             'type' => [$data->type],
