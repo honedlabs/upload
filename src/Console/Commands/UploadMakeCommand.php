@@ -8,7 +8,7 @@ use Illuminate\Console\GeneratorCommand;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputOption;
 
-use function trim;
+use function mb_trim;
 
 #[AsCommand(name: 'make:upload')]
 class UploadMakeCommand extends GeneratorCommand
@@ -52,7 +52,7 @@ class UploadMakeCommand extends GeneratorCommand
      */
     protected function resolveStubPath($stub)
     {
-        return file_exists($customPath = $this->laravel->basePath(trim($stub, '/')))
+        return file_exists($customPath = $this->laravel->basePath(mb_trim($stub, '/')))
             ? $customPath
             : __DIR__.'/../../..'.$stub;
     }
