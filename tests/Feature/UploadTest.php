@@ -2,8 +2,6 @@
 
 declare(strict_types=1);
 
-use Honed\Upload\Concerns\HasFile;
-use Honed\Upload\Contracts\ShouldAnonymize;
 use Honed\Upload\Upload;
 use Honed\Upload\UploadData;
 use Honed\Upload\UploadRule;

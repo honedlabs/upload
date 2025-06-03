@@ -4,9 +4,14 @@ declare(strict_types=1);
 
 namespace Honed\Upload\Concerns;
 
+use Closure;
 use Honed\Upload\Contracts\ShouldAnonymize;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+
+use function is_string;
+use function mb_strtolower;
+use function pathinfo;
 
 trait HasFile
 {
@@ -20,14 +25,14 @@ trait HasFile
     /**
      * The location prefix to store the file in
      *
-     * @var string|\Closure(mixed...):string|null
+     * @var string|Closure(mixed...):string|null
      */
     protected $location;
 
     /**
      * The name of the file to be stored.
      *
-     * @var string|\Closure(mixed...):string|null
+     * @var string|Closure(mixed...):string|null
      */
     protected $name;
 
@@ -37,6 +42,49 @@ trait HasFile
      * @var bool|null
      */
     protected $anonymize;
+
+    /**
+     * Get the disk to use for uploading files from the config.
+     *
+     * @return string
+     */
+    public static function getDefaultDisk()
+    {
+        return type(config('upload.disk', 's3'))->asString();
+    }
+
+    /**
+     * Get the immediate folder from a file location, if it exists.
+     *
+     * @param  string  $location
+     * @return string|null
+     */
+    public static function getFolder($location)
+    {
+        return Str::of($location)
+            ->explode('/')
+            ->filter()
+            ->slice(0, -1)
+            ->last();
+    }
+
+    /**
+     * Destructure the filename into its components.
+     *
+     * @param  mixed  $filename
+     * @return ($filename is string ? array{string, string} : array{null, null})
+     */
+    public static function destructureFilename($filename)
+    {
+        if (! is_string($filename)) {
+            return [null, null];
+        }
+
+        return [
+            pathinfo($filename, PATHINFO_FILENAME),
+            mb_strtolower(pathinfo($filename, PATHINFO_EXTENSION)),
+        ];
+    }
 
     /**
      * Set the disk to retrieve the S3 credentials from.
@@ -64,19 +112,9 @@ trait HasFile
     }
 
     /**
-     * Get the disk to use for uploading files from the config.
-     *
-     * @return string
-     */
-    public static function getDefaultDisk()
-    {
-        return type(config('upload.disk', 's3'))->asString();
-    }
-
-    /**
      * Set the location to store the file at.
      *
-     * @param  string|\Closure(mixed...):string  $location
+     * @param  string|Closure(mixed...):string  $location
      * @return $this
      */
     public function location($location)
@@ -89,7 +127,7 @@ trait HasFile
     /**
      * Define the location to store the file at.
      *
-     * @return string|\Closure(mixed...):string|null
+     * @return string|Closure(mixed...):string|null
      */
     public function locate()
     {
@@ -99,7 +137,7 @@ trait HasFile
     /**
      * Get the location to store the file at.
      *
-     * @return string|\Closure(mixed...):string|null
+     * @return string|Closure(mixed...):string|null
      */
     public function getLocation()
     {
@@ -113,7 +151,7 @@ trait HasFile
     /**
      * Set the name, or method, of generating the name of the file to be stored.
      *
-     * @param  \Closure(mixed...):string|string  $name
+     * @param  Closure(mixed...):string|string  $name
      * @return $this
      */
     public function name($name)
@@ -126,7 +164,7 @@ trait HasFile
     /**
      * Get the name, or method, of generating the name of the file to be stored.
      *
-     * @return \Closure(mixed...):string|string|null
+     * @return Closure(mixed...):string|string|null
      */
     public function getName()
     {
@@ -233,38 +271,5 @@ trait HasFile
                 )->trim('/')
                 ->value();
         });
-    }
-
-    /**
-     * Get the immediate folder from a file location, if it exists.
-     *
-     * @param  string  $location
-     * @return string|null
-     */
-    public static function getFolder($location)
-    {
-        return Str::of($location)
-            ->explode('/')
-            ->filter()
-            ->slice(0, -1)
-            ->last();
-    }
-
-    /**
-     * Destructure the filename into its components.
-     *
-     * @param  mixed  $filename
-     * @return ($filename is string ? array{string, string} : array{null, null})
-     */
-    public static function destructureFilename($filename)
-    {
-        if (! \is_string($filename)) {
-            return [null, null];
-        }
-
-        return [
-            \pathinfo($filename, PATHINFO_FILENAME),
-            \mb_strtolower(\pathinfo($filename, PATHINFO_EXTENSION)),
-        ];
     }
 }

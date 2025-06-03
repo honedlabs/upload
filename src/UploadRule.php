@@ -6,6 +6,12 @@ namespace Honed\Upload;
 
 use Honed\Upload\Concerns\ValidatesUpload;
 
+use function in_array;
+use function is_string;
+use function mb_strtolower;
+use function str_starts_with;
+use function trim;
+
 class UploadRule
 {
     use ValidatesUpload;
@@ -29,15 +35,15 @@ class UploadRule
      */
     public function isMatching($mime, $extension)
     {
-        $mime = \is_string($mime) ? \mb_strtolower(\trim($mime)) : $mime;
-        $extension = \is_string($extension) ? \mb_strtolower(\trim($extension)) : $extension;
+        $mime = is_string($mime) ? mb_strtolower(trim($mime)) : $mime;
+        $extension = is_string($extension) ? mb_strtolower(trim($extension)) : $extension;
 
-        if (\in_array($extension, $this->getExtensions())) {
+        if (in_array($extension, $this->getExtensions())) {
             return true;
         }
 
         foreach ($this->getMimeTypes() as $type) {
-            if (\is_string($mime) && \str_starts_with($mime, $type)) {
+            if (is_string($mime) && str_starts_with($mime, $type)) {
                 return true;
             }
         }

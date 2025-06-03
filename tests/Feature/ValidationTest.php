@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use Honed\Upload\Events\PresignCreated;
-use Honed\Upload\Events\PresignFailed;
 use Honed\Upload\Upload;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Validation\ValidationException;
@@ -53,9 +52,8 @@ it('validates type', function () {
         ->toHaveKeys([
             'attributes',
             'inputs',
-            'data'
+            'data',
         ])->{'data'}->toBe($this->upload->getProvided());
 
     Event::assertDispatched(PresignCreated::class);
 });
-

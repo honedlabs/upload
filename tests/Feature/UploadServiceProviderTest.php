@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use Honed\Upload\UploadServiceProvider;
-
 use Illuminate\Support\Facades\File;
 
 beforeEach(function () {

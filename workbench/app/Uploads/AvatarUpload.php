@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Honed\Upload\Tests\Fixtures;
+namespace Workbench\App\Uploads;
 
 use Honed\Upload\Upload;
 

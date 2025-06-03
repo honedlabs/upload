@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Honed\Upload;
 
 use Aws\S3\PostObjectV4;
-use Honed\Core\Concerns\HasRequest;
 use Honed\Core\Primitive;
 use Honed\Upload\Concerns\DispatchesPresignEvents;
 use Honed\Upload\Concerns\HasFile;
@@ -17,24 +16,31 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Number;
 use Illuminate\Validation\ValidationException;
 
+use function array_map;
+use function array_merge;
+use function count;
+use function implode;
+use function mb_strtoupper;
+use function trim;
+use function ucfirst;
+
 class Upload extends Primitive implements Responsable
 {
     use DispatchesPresignEvents;
     use HasFile;
-    use HasRequest;
     use ValidatesUpload;
 
     /**
      * The upload data to use from the request.
      *
-     * @var \Honed\Upload\UploadData|null
+     * @var UploadData|null
      */
     protected $data;
 
     /**
      * Get the configuration rules for validating file uploads.
      *
-     * @var array<int, \Honed\Upload\UploadRule>
+     * @var array<int, UploadRule>
      */
     protected $rules = [];
 
@@ -69,10 +75,10 @@ class Upload extends Primitive implements Responsable
     /**
      * Create a new upload instance.
      */
-    public function __construct(Request $request)
-    {
+    public function __construct(
+        protected Request $request,
+    ) {
         parent::__construct();
-        $this->request($request);
     }
 
     /**
@@ -98,16 +104,26 @@ class Upload extends Primitive implements Responsable
     }
 
     /**
+     * Get the default access control list to use for the file.
+     *
+     * @return string
+     */
+    public static function getDefaultACL()
+    {
+        return type(config('upload.acl', 'public-read'))->asString();
+    }
+
+    /**
      * Set the rules for validating file uploads.
      *
-     * @param  \Honed\Upload\UploadRule|iterable<\Honed\Upload\UploadRule>  ...$rules
+     * @param  UploadRule|iterable<UploadRule>  ...$rules
      * @return $this
      */
     public function rules(...$rules)
     {
         $rules = Arr::flatten($rules);
 
-        $this->rules = \array_merge($this->rules, $rules);
+        $this->rules = array_merge($this->rules, $rules);
 
         return $this;
     }
@@ -115,7 +131,7 @@ class Upload extends Primitive implements Responsable
     /**
      * Get the rules for validating file uploads.
      *
-     * @return array<int, \Honed\Upload\UploadRule>
+     * @return array<int, UploadRule>
      */
     public function getRules()
     {
@@ -143,16 +159,6 @@ class Upload extends Primitive implements Responsable
     public function getACL()
     {
         return $this->acl ?? static::getDefaultACL();
-    }
-
-    /**
-     * Get the default access control list to use for the file.
-     *
-     * @return string
-     */
-    public static function getDefaultACL()
-    {
-        return type(config('upload.acl', 'public-read'))->asString();
     }
 
     /**
@@ -218,7 +224,7 @@ class Upload extends Primitive implements Responsable
     /**
      * Get the upload data.
      *
-     * @return \Honed\Upload\UploadData|null
+     * @return UploadData|null
      */
     public function getData()
     {
@@ -258,17 +264,17 @@ class Upload extends Primitive implements Responsable
         $extensions = $this->getExtensions();
         $mimes = $this->getMimeTypes();
 
-        $numMimes = \count($mimes);
-        $numExts = \count($extensions);
+        $numMimes = count($mimes);
+        $numExts = count($extensions);
 
         $typed = match (true) {
-            $numExts > 0 && $numExts < 4 => \implode(', ', \array_map(
-                static fn ($ext) => \mb_strtoupper(\trim($ext)),
+            $numExts > 0 && $numExts < 4 => implode(', ', array_map(
+                static fn ($ext) => mb_strtoupper(trim($ext)),
                 $extensions
             )),
 
-            $numMimes > 0 && $numMimes < 4 => \ucfirst(\implode(', ', \array_map(
-                static fn ($mime) => \trim($mime, ' /'),
+            $numMimes > 0 && $numMimes < 4 => ucfirst(implode(', ', array_map(
+                static fn ($mime) => trim($mime, ' /'),
                 $mimes
             ))),
 
@@ -326,14 +332,14 @@ class Upload extends Primitive implements Responsable
     /**
      * Validate the incoming request.
      *
-     * @param  \Illuminate\Http\Request|null  $request
-     * @return array{\Honed\Upload\UploadData, \Honed\Upload\UploadRule|null}
+     * @param  Request|null  $request
+     * @return array{UploadData, UploadRule|null}
      *
-     * @throws \Illuminate\Validation\ValidationException
+     * @throws ValidationException
      */
     public function validate($request)
     {
-        $request ??= $this->getRequest();
+        $request ??= $this->request;
 
         [$name, $extension] =
             static::destructureFilename($request->input('name'));
@@ -385,10 +391,10 @@ class Upload extends Primitive implements Responsable
     /**
      * Create a presigned POST URL using.
      *
-     * @param  \Illuminate\Http\Request|null  $request
+     * @param  Request|null  $request
      * @return array{attributes:array<string,mixed>,inputs:array<string,mixed>}
      *
-     * @throws \Illuminate\Validation\ValidationException
+     * @throws ValidationException
      */
     public function create($request = null)
     {
@@ -418,7 +424,7 @@ class Upload extends Primitive implements Responsable
     /**
      * {@inheritdoc}
      */
-    public function toArray()
+    public function toArray($named = [], $typed = [])
     {
         $data = [
             'multiple' => $this->isMultiple(),
@@ -429,7 +435,7 @@ class Upload extends Primitive implements Responsable
             return $data;
         }
 
-        return \array_merge($data, [
+        return array_merge($data, [
             'extensions' => $this->getExtensions(),
             'mimes' => $this->getMimeTypes(),
             'size' => $this->getMax(),
@@ -439,7 +445,7 @@ class Upload extends Primitive implements Responsable
     /**
      * Create a response for the upload.
      *
-     * @param  \Illuminate\Http\Request  $request
+     * @param  Request  $request
      * @return \Illuminate\Http\JsonResponse
      */
     public function toResponse($request)

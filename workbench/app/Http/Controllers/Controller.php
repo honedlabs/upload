@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Honed\Upload\Tests\Fixtures;
+namespace Workbench\App\Http\Controllers;
 
 use Honed\Upload\Upload;
 use Illuminate\Routing\Controller as BaseController;
