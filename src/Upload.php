@@ -21,7 +21,7 @@ use function array_merge;
 use function count;
 use function implode;
 use function mb_strtoupper;
-use function mb_trim;
+use function trim;
 use function ucfirst;
 
 class Upload extends Primitive implements Responsable
@@ -269,12 +269,12 @@ class Upload extends Primitive implements Responsable
 
         $typed = match (true) {
             $numExts > 0 && $numExts < 4 => implode(', ', array_map(
-                static fn ($ext) => mb_strtoupper(mb_trim($ext)),
+                static fn ($ext) => mb_strtoupper(trim($ext)),
                 $extensions
             )),
 
             $numMimes > 0 && $numMimes < 4 => ucfirst(implode(', ', array_map(
-                static fn ($mime) => mb_trim($mime, ' /'),
+                static fn ($mime) => trim($mime, ' /'),
                 $mimes
             ))),
 
