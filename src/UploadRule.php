@@ -9,8 +9,8 @@ use Honed\Upload\Concerns\ValidatesUpload;
 use function in_array;
 use function is_string;
 use function mb_strtolower;
-use function mb_trim;
 use function str_starts_with;
+use function trim;
 
 class UploadRule
 {
@@ -35,8 +35,8 @@ class UploadRule
      */
     public function isMatching($mime, $extension)
     {
-        $mime = is_string($mime) ? mb_strtolower(mb_trim($mime)) : $mime;
-        $extension = is_string($extension) ? mb_strtolower(mb_trim($extension)) : $extension;
+        $mime = is_string($mime) ? mb_strtolower(trim($mime)) : $mime;
+        $extension = is_string($extension) ? mb_strtolower(trim($extension)) : $extension;
 
         if (in_array($extension, $this->getExtensions())) {
             return true;
