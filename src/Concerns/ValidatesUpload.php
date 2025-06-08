@@ -14,9 +14,9 @@ use function array_merge;
 use function implode;
 use function in_array;
 use function mb_strtolower;
-use function mb_trim;
 use function sprintf;
 use function str_starts_with;
+use function trim;
 
 trait ValidatesUpload
 {
@@ -174,7 +174,7 @@ trait ValidatesUpload
     public function mimes(...$types)
     {
         $types = array_map(
-            static fn ($type) => mb_rtrim(mb_strtolower(mb_trim($type, ' *')), '/'),
+            static fn ($type) => rtrim(mb_strtolower(trim($type, ' *')), '/'),
             Arr::flatten($types)
         );
 
@@ -202,7 +202,7 @@ trait ValidatesUpload
     public function extensions(...$extensions)
     {
         $extensions = array_map(
-            static fn ($ext) => mb_strtolower(mb_trim($ext, ' .')),
+            static fn ($ext) => mb_strtolower(trim($ext, ' .')),
             Arr::flatten($extensions)
         );
 
