@@ -4,49 +4,46 @@ declare(strict_types=1);
 
 namespace Honed\Upload;
 
-use Illuminate\Support\Arr;
-use Honed\Upload\Exceptions\PathNotSetException;
-
 class File
 {
     /**
      * The name of the file.
-     * 
+     *
      * @var string
      */
     public $name;
-    
+
     /**
      * The extension of the file.
-     * 
+     *
      * @var string
      */
     public $extension;
 
     /**
      * The MIME type of the file.
-     * 
+     *
      * @var string
      */
     public $mimeType;
-    
+
     /**
      * The size of the file in bytes.
-     * 
+     *
      * @var int
      */
     public $size;
 
     /**
      * The meta data of the file.
-     * 
+     *
      * @var mixed
      */
     public $meta;
 
     /**
      * The path of the file in storage.
-     * 
+     *
      * @var string
      */
     public $path;
@@ -124,7 +121,7 @@ class File
      */
     public function getFilename()
     {
-        return $this->name . '.' . $this->extension;
+        return $this->name.'.'.$this->extension;
     }
 
     /**
@@ -198,7 +195,7 @@ class File
 
     /**
      * Set the path of the file using the properties.
-     * 
+     *
      * @return void
      */
     public function setPath()

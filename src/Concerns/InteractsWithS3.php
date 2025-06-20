@@ -18,21 +18,21 @@ trait InteractsWithS3
 
     /**
      * The filesystem disk to use.
-     * 
+     *
      * @var string
      */
     protected $disk = 's3';
 
     /**
      * The S3 bucket to use.
-     * 
+     *
      * @var string|null
      */
     protected $bucket;
 
     /**
      * The presigned object.
-     * 
+     *
      * @var \Aws\S3\PostObjectV4|null
      */
     protected $presign;
@@ -120,7 +120,7 @@ trait InteractsWithS3
      * Get the S3 bucket to use.
      *
      * @return string
-     * 
+     *
      * @throws CouldNotResolveBucketException
      */
     public function getBucket()
@@ -157,7 +157,7 @@ trait InteractsWithS3
      * @param  string  $mimeType
      * @param  int  $size
      * @return array<int,array<int,string|int>>
-     * 
+     *
      * @throws CouldNotResolveBucketException
      */
     public function getOptions($key, $mimeType, $size)
@@ -203,5 +203,5 @@ trait InteractsWithS3
         $client = Storage::disk($this->getDisk());
 
         return $client->getClient();
-    }       
+    }
 }

@@ -30,7 +30,7 @@ trait HasRules
     {
         /** @var array<int,\Honed\Upload\UploadRule> */
         $rules = is_array($rules) ? $rules : func_get_args();
-        
+
         $this->rules = [...$this->rules, ...$rules];
 
         return $this;

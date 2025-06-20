@@ -13,7 +13,7 @@ use function str_starts_with;
 
 class UploadRule
 {
-    use Concerns\ValidatesUpload;
+    use ValidatesUpload;
 
     /**
      * Create a new file rule instance.
@@ -39,7 +39,7 @@ class UploadRule
         }
 
         return (bool) Arr::first(
-            $this->getMimeTypes(), 
+            $this->getMimeTypes(),
             static fn ($type) => is_string($mime) && str_starts_with($mime, $type)
         );
     }

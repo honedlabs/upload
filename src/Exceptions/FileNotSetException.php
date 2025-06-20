@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Honed\Upload\Exceptions;
 
-class FileNotSetException extends \RuntimeException
+use RuntimeException;
+
+class FileNotSetException extends RuntimeException
 {
     /**
      * Create a new file not set exception.

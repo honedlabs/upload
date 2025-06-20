@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Honed\Upload\Exceptions;
 
-class CouldNotResolveBucketException extends \RuntimeException
+use RuntimeException;
+
+class CouldNotResolveBucketException extends RuntimeException
 {
     /**
      * Create a new could not resolve bucket exception.

@@ -6,8 +6,6 @@ namespace Honed\Upload\Pipes;
 
 use Honed\Upload\UploadRule;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\ValidationException;
 
 /**
  * @extends \Honed\Upload\Pipes\Pipe<\Honed\Upload\Upload>

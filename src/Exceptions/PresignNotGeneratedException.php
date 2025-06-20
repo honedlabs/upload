@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Honed\Upload\Exceptions;
 
-class PresignNotGeneratedException extends \RuntimeException
+use RuntimeException;
+
+class PresignNotGeneratedException extends RuntimeException
 {
     /**
      * Create a new presign not generated exception.

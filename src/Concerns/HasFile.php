@@ -5,15 +5,9 @@ declare(strict_types=1);
 namespace Honed\Upload\Concerns;
 
 use Closure;
-use function pathinfo;
-use function is_string;
-use function mb_strtolower;
-
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Storage;
 use Honed\Upload\Contracts\ShouldBeUuid;
-use Honed\Upload\Contracts\ShouldAnonymize;
 use Honed\Upload\Exceptions\FileNotSetException;
+use Illuminate\Support\Str;
 
 trait HasFile
 {
@@ -33,14 +27,14 @@ trait HasFile
 
     /**
      * A handler to create the file path.
-     * 
-     * @var (\Closure(mixed...):string)|null
+     *
+     * @var (Closure(mixed...):string)|null
      */
     protected $path;
 
     /**
      * The file data transfer object.
-     * 
+     *
      * @var \Honed\Upload\File|null
      */
     protected $file;
@@ -70,7 +64,7 @@ trait HasFile
 
     /**
      * Set the file name of the upload to be a UUID.
-     * 
+     *
      * @param  bool  $uuid
      * @return $this
      */
@@ -94,7 +88,7 @@ trait HasFile
     /**
      * Set the path to the file.
      *
-     * @param  \Closure(mixed...):string  $path
+     * @param  Closure(mixed...):string  $path
      * @return $this
      */
     public function path($path)
@@ -107,7 +101,7 @@ trait HasFile
     /**
      * Get the path callback.
      *
-     * @return (\Closure(mixed...):string)|null
+     * @return (Closure(mixed...):string)|null
      */
     public function getPathCallback()
     {
@@ -147,8 +141,8 @@ trait HasFile
      * Get the file data transfer object.
      *
      * @return \Honed\Upload\File
-     * 
-     * @throws \Honed\Upload\Exceptions\FileNotSetException
+     *
+     * @throws FileNotSetException
      */
     public function getFile()
     {

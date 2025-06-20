@@ -80,7 +80,7 @@ trait BridgesSerialization
     {
         $fileTypeDescription = $this->buildFileTypeDescription($extensions, $mimeTypes);
         $maxSizeDescription = Number::fileSize($size);
-        
+
         return "{$fileTypeDescription} up to {$maxSizeDescription}";
     }
 
@@ -89,7 +89,6 @@ trait BridgesSerialization
      *
      * @param  array<int, string>  $extensions
      * @param  array<int, string>  $mimeTypes
-     * @return string
      */
     protected function buildFileTypeDescription($extensions, $mimeTypes): string
     {
@@ -103,35 +102,35 @@ trait BridgesSerialization
     /**
      * Determine if extensions should be listed in the message.
      *
-     * @param array<int, string> $extensions
+     * @param  array<int, string>  $extensions
      * @return bool
      */
     protected function shouldListExtensions($extensions)
     {
-        return !empty($extensions) && count($extensions) < 4;
+        return ! empty($extensions) && count($extensions) < 4;
     }
 
     /**
      * Determine if MIME types should be listed in the message.
      *
-     * @param array<int, string> $mimeTypes
+     * @param  array<int, string>  $mimeTypes
      * @return bool
      */
     protected function shouldListMimeTypes($mimeTypes)
     {
-        return !empty($mimeTypes) && count($mimeTypes) < 4;
+        return ! empty($mimeTypes) && count($mimeTypes) < 4;
     }
 
     /**
      * Format extensions for display in the message.
      *
-     * @param array<int, string> $extensions
+     * @param  array<int, string>  $extensions
      * @return string
      */
     protected function formatExtensions($extensions)
     {
         $formattedExtensions = array_map(
-            static fn (string $extension) => mb_strtoupper(trim($extension)),
+            static fn (string $extension) => mb_strtoupper(mb_trim($extension)),
             $extensions
         );
 
@@ -141,13 +140,13 @@ trait BridgesSerialization
     /**
      * Format MIME types for display in the message.
      *
-     * @param array<int, string> $mimeTypes
+     * @param  array<int, string>  $mimeTypes
      * @return string
      */
     protected function formatMimeTypes($mimeTypes)
     {
         $formattedTypes = array_map(
-            static fn (string $mimeType) => trim($mimeType, ' /'),
+            static fn (string $mimeType) => mb_trim($mimeType, ' /'),
             $mimeTypes
         );
 
@@ -156,8 +155,6 @@ trait BridgesSerialization
 
     /**
      * Get a generic file description when specific types can't be listed.
-     *
-     * @return string
      */
     protected function getGenericFileDescription(): string
     {

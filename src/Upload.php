@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace Honed\Upload;
 
+use Honed\Core\Concerns\HasRequest;
 use Honed\Core\Primitive;
-use Illuminate\Http\Request;
+use Honed\Upload\Exceptions\PresignNotGeneratedException;
+use Honed\Upload\Pipes\CreateRules;
 use Honed\Upload\Pipes\Presign;
 use Honed\Upload\Pipes\Validate;
-use Honed\Core\Concerns\HasRequest;
-use Honed\Upload\Pipes\CreateRules;
 use Illuminate\Contracts\Support\Responsable;
+use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
-use Honed\Upload\Exceptions\PresignNotGeneratedException;
 
 class Upload extends Primitive implements Responsable
 {
@@ -83,6 +83,7 @@ class Upload extends Primitive implements Responsable
             $this->getMimeTypes()
         );
     }
+
     /**
      * Create a presigned POST URL using.
      *
@@ -110,7 +111,7 @@ class Upload extends Primitive implements Responsable
 
     /**
      * Get the instance as an array.
-     * 
+     *
      * @return array<string,mixed>
      */
     public function toArray()

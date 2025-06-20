@@ -16,15 +16,15 @@ class Validate extends Pipe
 {
     /**
      * Run the pipe logic.
-     * 
-     * @throws \Illuminate\Validation\ValidationException
+     *
+     * @throws ValidationException
      */
     public function run($instance)
     {
         $request = $instance->getRequest();
 
         try {
-            $rules = $instance->getRule()?->createRules() 
+            $rules = $instance->getRule()?->createRules()
                 ?? $instance->createRules();
 
             /** @var array{name:string,extension:string,type:string,size:int,meta:mixed} $validated */
