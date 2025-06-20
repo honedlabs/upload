@@ -20,7 +20,5 @@ class PresignFailed
     public function __construct(
         public $upload,
         public $request,
-    ) {
-        //
-    }
+    ) { }
 }

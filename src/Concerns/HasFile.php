@@ -5,30 +5,18 @@ declare(strict_types=1);
 namespace Honed\Upload\Concerns;
 
 use Closure;
-use Honed\Upload\Contracts\ShouldAnonymize;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
-
+use function pathinfo;
 use function is_string;
 use function mb_strtolower;
-use function pathinfo;
+
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
+use Honed\Upload\Contracts\ShouldBeUuid;
+use Honed\Upload\Contracts\ShouldAnonymize;
+use Honed\Upload\Exceptions\FileNotSetException;
 
 trait HasFile
 {
-    /**
-     * The disk to retrieve the location credentials from.
-     *
-     * @var string|null
-     */
-    protected $disk;
-
-    /**
-     * The location prefix to store the file in
-     *
-     * @var string|Closure(mixed...):string|null
-     */
-    protected $location;
-
     /**
      * The name of the file to be stored.
      *
@@ -37,116 +25,25 @@ trait HasFile
     protected $name;
 
     /**
-     * Whether the file name should be generated using a UUID.
+     * Whether the file name should be a UUID.
      *
-     * @var bool|null
+     * @var bool
      */
-    protected $anonymize;
+    protected $uuid = false;
 
     /**
-     * Get the disk to use for uploading files from the config.
-     *
-     * @return string
+     * A handler to create the file path.
+     * 
+     * @var (\Closure(mixed...):string)|null
      */
-    public static function getDefaultDisk()
-    {
-        return type(config('upload.disk', 's3'))->asString();
-    }
+    protected $path;
 
     /**
-     * Get the immediate folder from a file location, if it exists.
-     *
-     * @param  string  $location
-     * @return string|null
+     * The file data transfer object.
+     * 
+     * @var \Honed\Upload\File|null
      */
-    public static function getFolder($location)
-    {
-        return Str::of($location)
-            ->explode('/')
-            ->filter()
-            ->slice(0, -1)
-            ->last();
-    }
-
-    /**
-     * Destructure the filename into its components.
-     *
-     * @param  mixed  $filename
-     * @return ($filename is string ? array{string, string} : array{null, null})
-     */
-    public static function destructureFilename($filename)
-    {
-        if (! is_string($filename)) {
-            return [null, null];
-        }
-
-        return [
-            pathinfo($filename, PATHINFO_FILENAME),
-            mb_strtolower(pathinfo($filename, PATHINFO_EXTENSION)),
-        ];
-    }
-
-    /**
-     * Set the disk to retrieve the S3 credentials from.
-     *
-     * @param  string|null  $disk
-     * @return $this
-     */
-    public function disk($disk)
-    {
-        if (filled($disk)) {
-            $this->disk = $disk;
-        }
-
-        return $this;
-    }
-
-    /**
-     * Get the S3 disk to use for uploading files.
-     *
-     * @return string
-     */
-    public function getDisk()
-    {
-        return $this->disk ?? static::getDefaultDisk();
-    }
-
-    /**
-     * Set the location to store the file at.
-     *
-     * @param  string|Closure(mixed...):string  $location
-     * @return $this
-     */
-    public function location($location)
-    {
-        $this->location = $location;
-
-        return $this;
-    }
-
-    /**
-     * Define the location to store the file at.
-     *
-     * @return string|Closure(mixed...):string|null
-     */
-    public function locate()
-    {
-        return null;
-    }
-
-    /**
-     * Get the location to store the file at.
-     *
-     * @return string|Closure(mixed...):string|null
-     */
-    public function getLocation()
-    {
-        if (isset($this->location)) {
-            return $this->evaluate($this->location);
-        }
-
-        return $this->locate();
-    }
+    protected $file;
 
     /**
      * Set the name, or method, of generating the name of the file to be stored.
@@ -172,104 +69,93 @@ trait HasFile
     }
 
     /**
-     * Set whether to anonymize the file name using a UUID.
-     *
-     * @param  bool  $anonymize
+     * Set the file name of the upload to be a UUID.
+     * 
+     * @param  bool  $uuid
      * @return $this
      */
-    public function anonymize($anonymize = true)
+    public function uuid($uuid = true)
     {
-        $this->anonymize = $anonymize;
+        $this->uuid = $uuid;
 
         return $this;
     }
 
     /**
-     * Determine whether the file name should be anonymized using a UUID.
+     * Determine if the file name should be a UUID.
      *
      * @return bool
      */
-    public function isAnonymized()
+    public function isUuid()
     {
-        if (isset($this->anonymize)) {
-            return $this->anonymize;
+        return $this->uuid || $this instanceof ShouldBeUuid;
+    }
+
+    /**
+     * Set the path to the file.
+     *
+     * @param  \Closure(mixed...):string  $path
+     * @return $this
+     */
+    public function path($path)
+    {
+        $this->path = $path;
+
+        return $this;
+    }
+
+    /**
+     * Get the path callback.
+     *
+     * @return (\Closure(mixed...):string)|null
+     */
+    public function getPathCallback()
+    {
+        return $this->path;
+    }
+
+    /**
+     * Set the file data and evaluate the callbacks.
+     *
+     * @param  \Honed\Upload\File  $file
+     * @return void
+     */
+    public function setFile($file)
+    {
+        $this->file = $file;
+
+        /** @var string $name */
+        $name = match (true) {
+            (bool) $n = $this->getName() => $this->evaluate($n),
+            $this->isUuid() => Str::uuid()->toString(),
+            default => $this->file->getName(),
+        };
+
+        $this->file->name($name);
+
+        $this->file->setPath();
+
+        /** @var string|null $path */
+        $path = $this->evaluate($this->path);
+
+        if ($path) {
+            $this->file->path($path);
+        }
+    }
+
+    /**
+     * Get the file data transfer object.
+     *
+     * @return \Honed\Upload\File
+     * 
+     * @throws \Honed\Upload\Exceptions\FileNotSetException
+     */
+    public function getFile()
+    {
+        if (! $this->file) {
+            FileNotSetException::throw();
         }
 
-        if ($this instanceof ShouldAnonymize) {
-            return true;
-        }
-
-        return $this->isAnonymizedByDefault();
-    }
-
-    /**
-     * Determine whether the file name should be anonymized using a UUID by default.
-     *
-     * @return bool
-     */
-    public function isAnonymizedByDefault()
-    {
-        return (bool) config('upload.anonymize', false);
-    }
-
-    /**
-     * Get the S3 client to use for uploading files.
-     *
-     * @return \Aws\S3\S3Client
-     */
-    public function getClient()
-    {
-        $disk = $this->getDisk();
-
-        /** @var \Illuminate\Filesystem\AwsS3V3Adapter */
-        $client = Storage::disk($disk);
-
-        return $client->getClient();
-    }
-
-    /**
-     * Get the complete filename of the file to be stored.
-     *
-     * @param  \Honed\Upload\UploadData  $data
-     * @return string
-     */
-    public function createFilename($data)
-    {
-        return once(function () use ($data) {
-            $name = $this->getName();
-
-            if ($this->isAnonymized()) {
-                return Str::uuid()->toString();
-            }
-
-            if (isset($name)) {
-                return $this->evaluate($name);
-            }
-
-            return $data->name;
-        });
-    }
-
-    /**
-     * Build the storage key location for the uploaded file.
-     *
-     * @param  \Honed\Upload\UploadData  $data
-     * @return string
-     */
-    public function createKey($data)
-    {
-        return once(function () use ($data) {
-            $filename = $this->createFilename($data);
-
-            $location = $this->evaluate($this->getLocation());
-
-            return Str::of($filename)
-                ->append('.', $data->extension)
-                ->when($location, fn ($name, $location) => $name
-                    ->prepend($location, '/')
-                    ->replace('//', '/'),
-                )->trim('/')
-                ->value();
-        });
+        return $this->file;
     }
 }

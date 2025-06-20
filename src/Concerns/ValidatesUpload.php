@@ -14,39 +14,39 @@ use function array_merge;
 use function implode;
 use function in_array;
 use function mb_strtolower;
-use function mb_trim;
 use function sprintf;
 use function str_starts_with;
+use function trim;
 
 trait ValidatesUpload
 {
     /**
-     * The expiry duration of the request in minutes.
+     * The lifetime of the request in minutes.
      *
-     * @var int|null
+     * @var int
      */
-    protected $expires;
+    protected $lifetime = 2;
 
     /**
      * The maximum file size in bytes.
      *
-     * @var int|null
+     * @var int
      */
-    protected $max;
+    protected $maxSize = 2147483647;
 
     /**
      * The minimum file size in bytes.
      *
-     * @var int|null
+     * @var int
      */
-    protected $min;
+    protected $minSize = 0;
 
     /**
      * The accepted file mime types.
      *
      * @var array<int, string>
      */
-    protected $mimeTypes = [];
+    protected $mimes = [];
 
     /**
      * The accepted file extensions.
@@ -56,78 +56,48 @@ trait ValidatesUpload
     protected $extensions = [];
 
     /**
-     * Get the default expiry duration of the request in minutes.
-     *
-     * @return int
-     */
-    public static function getDefaultExpiry()
-    {
-        return type(config('upload.expires', 2))->asInt();
-    }
-
-    /**
-     * Get the default maximum file size in bytes.
-     *
-     * @return int
-     */
-    public static function getDefaultMax()
-    {
-        return type(config('upload.max_size', 10 * (1024 ** 3)))->asInt();
-    }
-
-    /**
-     * Get the default minimum file size in bytes.
-     *
-     * @return int
-     */
-    public static function getDefaultMin()
-    {
-        return type(config('upload.min_size', 1))->asInt();
-    }
-
-    /**
      * Set the expiry duration of the request in minutes.
      *
      * @param  int  $minutes
      * @return $this
      */
-    public function expiresIn($minutes)
+    public function lifetime($minutes)
     {
-        $this->expires = $minutes;
+        $this->lifetime = $minutes;
 
         return $this;
     }
 
     /**
-     * Get the expiry duration of the request in minutes.
+     * Get the lifetime of the request in minutes.
      *
      * @return int
      */
-    public function getExpiry()
+    public function getLifetime()
     {
-        return $this->expires ?? static::getDefaultExpiry();
+        return $this->lifetime;
     }
 
     /**
-     * Format the expiry duration of the request.
+     * Format the lifetime of the request.
      *
-     * @param  int  $expiry
+     * @param  int  $minutes
      * @return string
      */
-    public function formatExpiry($expiry)
+    public function formatLifetime($minutes)
     {
-        return sprintf('+%d minutes', abs($expiry));
+        return sprintf('+%d minutes', abs($minutes));
     }
 
     /**
      * Set the maximum file size in bytes.
      *
-     * @param  int  $size
+     * @param  int  $bytes
      * @return $this
      */
-    public function max($size)
+    public function maxSize($bytes)
     {
-        $this->max = $size;
+        $this->maxSize = $bytes;
 
         return $this;
     }
@@ -137,20 +107,20 @@ trait ValidatesUpload
      *
      * @return int
      */
-    public function getMax()
+    public function getMaxSize()
     {
-        return $this->max ?? static::getDefaultMax();
+        return $this->maxSize;
     }
 
     /**
      * Set the minimum file size in bytes.
      *
-     * @param  int  $size
+     * @param  int  $bytes
      * @return $this
      */
-    public function min($size)
+    public function minSize($bytes)
     {
-        $this->min = $size;
+        $this->minSize = $bytes;
 
         return $this;
     }
@@ -160,27 +130,63 @@ trait ValidatesUpload
      *
      * @return int
      */
-    public function getMin()
+    public function getMinSize()
     {
-        return $this->min ?? static::getDefaultMin();
+        return $this->minSize;
     }
 
     /**
-     * Set the accepted file mime types.
+     * Merge a set of accepted mime types with the existing.
      *
-     * @param  string|iterable<int,string>  ...$types
+     * @param  string|array<int,string>  $types
      * @return $this
      */
-    public function mimes(...$types)
+    public function mimes($types)
     {
+        /** @var array<int, string> */
+        $types = is_array($types) ? $types : func_get_args();
+
         $types = array_map(
-            static fn ($type) => mb_rtrim(mb_strtolower(mb_trim($type, ' *')), '/'),
-            Arr::flatten($types)
+            static fn ($type) => rtrim(mb_strtolower(trim($type, ' *')), '/'),
+            $types
         );
 
-        $this->mimeTypes = array_merge($this->mimeTypes, $types);
+        $this->mimes = [...$this->mimes, ...$types];
 
         return $this;
+    }
+
+    /**
+     * Merge a set of accepted mime types with the existing.
+     *
+     * @param  string|array<int,string>  $types
+     * @return $this
+     */
+    public function mimeTypes($types)
+    {
+        return $this->mimes($types);
+    }
+
+    /** 
+     * Add a mime type to the accepted mime types.
+     *
+     * @param  string  $type
+     * @return $this
+     */
+    public function mime($type)
+    {
+        return $this->mimes($type);
+    }
+
+    /**
+     * Add a mime type to the accepted mime types.
+     *
+     * @param  string  $type
+     * @return $this
+     */
+    public function mimeType($type)
+    {
+        return $this->mime($type);
     }
 
     /**
@@ -190,25 +196,39 @@ trait ValidatesUpload
      */
     public function getMimeTypes()
     {
-        return $this->mimeTypes;
+        return $this->mimes;
     }
 
     /**
-     * Set the accepted file extensions.
+     * Merge a set of accepted extensions with the existing.
      *
-     * @param  string|iterable<int,string>  ...$extensions
+     * @param  string|array<int,string>  $extensions
      * @return $this
      */
-    public function extensions(...$extensions)
+    public function extensions($extensions)
     {
+        /** @var array<int, string> */
+        $extensions = is_array($extensions) ? $extensions : func_get_args();
+
         $extensions = array_map(
-            static fn ($ext) => mb_strtolower(mb_trim($ext, ' .')),
-            Arr::flatten($extensions)
+            static fn ($ext) => mb_strtolower(trim($ext, ' .')),
+            $extensions
         );
 
-        $this->extensions = array_merge($this->extensions, $extensions);
+        $this->extensions = [...$this->extensions, ...$extensions];
 
         return $this;
+    }
+
+    /**
+     * Add an accepted file extension.
+     *
+     * @param  string  $extension
+     * @return $this
+     */
+    public function extension($extension)
+    {
+        return $this->extensions($extension);
     }
 
     /**
@@ -255,7 +275,7 @@ trait ValidatesUpload
                 'required',
                 'integer',
                 function (string $attribute, int $value, Closure $fail) {
-                    $max = $this->getMax();
+                    $max = $this->getMaxSize();
 
                     if ($value > $max) {
                         $fail(__('upload::messages.max_size', [
@@ -263,7 +283,7 @@ trait ValidatesUpload
                         ]));
                     }
 
-                    $min = $this->getMin();
+                    $min = $this->getMinSize();
 
                     if ($value < $min) {
                         $fail(__('upload::messages.min_size', [

@@ -14,15 +14,13 @@ class PresignCreated
      * Create a new event instance.
      *
      * @param  class-string<\Honed\Upload\Upload>  $upload
-     * @param  \Honed\Upload\UploadData  $data
+     * @param  \Honed\Upload\File  $file
      * @param  string  $disk
      * @return void
      */
     public function __construct(
         public $upload,
-        public $data,
+        public $file,
         public $disk,
-    ) {
-        //
-    }
+    ) { }
 }

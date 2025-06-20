@@ -1,21 +1,21 @@
 <?php
 
-declare(strict_types=1);
 
 namespace {{ namespace }};
 
 use Honed\Upload\Upload;
-use Honed\Upload\Contracts\DefinesPath;
+use Honed\Upload\Contracts\ShouldBeUuid;
 
-final class {{ class }} extends Upload
+class {{ class }} extends Upload
 {
     /**
-     * Provide the upload with any necessary setup.
+     * Define the settings for the upload.
      *
-     * @return void
+     * @param  $this  $upload
+     * @return $this
      */
-    public function setUp()
+    protected function definition(Upload $upload): Honed
     {
-        //
+        return $upload;
     }
 }

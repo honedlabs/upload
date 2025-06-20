@@ -2,6 +2,12 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Facades\File;
+
+beforeEach(function () {
+    File::cleanDirectory(app_path('Uploads'));
+});
+
 it('makes', function () {
     $this->artisan('make:upload', [
         'name' => 'ProfileUpload',
