@@ -7,18 +7,8 @@ namespace Honed\Upload;
 use Honed\Upload\Commands\UploadMakeCommand;
 use Illuminate\Support\ServiceProvider;
 
-final class UploadServiceProvider extends ServiceProvider
+class UploadServiceProvider extends ServiceProvider
 {
-    /**
-     * Register services.
-     *
-     * @return void
-     */
-    public function register()
-    {
-        $this->mergeConfigFrom(__DIR__.'/../config/upload.php', 'upload');
-    }
-
     /**
      * Bootstrap services.
      *
@@ -44,10 +34,6 @@ final class UploadServiceProvider extends ServiceProvider
      */
     public function offerPublishing()
     {
-        $this->publishes([
-            __DIR__.'/../config/upload.php' => config_path('upload.php'),
-        ], 'upload-config');
-
         $this->publishes([
             __DIR__.'/../stubs' => base_path('stubs'),
         ], 'upload-stubs');

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Honed\Upload;
 
+use Illuminate\Support\Arr;
+
 class File
 {
     /**
@@ -56,16 +58,13 @@ class File
      */
     public static function from($data)
     {
-        $name = $data['name'];
-        $extension = $data['extension'];
-
         return resolve(static::class)
-            ->name($name)
-            ->extension($extension)
+            ->name($data['name'])
+            ->extension($data['extension'])
             ->mimeType($data['type'])
             ->size($data['size'])
-            ->meta($data['meta'])
-            ->path($name.'.'.$extension);
+            ->meta(Arr::get($data, 'meta', null))
+            ->setPath();
     }
 
     /**
@@ -196,11 +195,13 @@ class File
     /**
      * Set the path of the file using the properties.
      *
-     * @return void
+     * @return $this
      */
     public function setPath()
     {
         $this->path = $this->getFilename();
+
+        return $this;
     }
 
     /**

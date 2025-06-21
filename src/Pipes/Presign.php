@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace Honed\Upload\Pipes;
 
 use Aws\S3\PostObjectV4;
+use Honed\Core\Pipe;
 use Honed\Upload\Events\PresignCreated;
 
 /**
- * @extends \Honed\Upload\Pipes\Pipe<\Honed\Upload\Upload>
+ * @extends \Honed\Core\Pipe<\Honed\Upload\Upload>
  */
 class Presign extends Pipe
 {

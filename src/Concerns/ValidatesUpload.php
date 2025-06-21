@@ -12,32 +12,38 @@ use function array_map;
 use function implode;
 use function in_array;
 use function mb_strtolower;
-use function mb_trim;
 use function sprintf;
 use function str_starts_with;
+use function trim;
 
 trait ValidatesUpload
 {
+    public const LIFETIME = 2;
+
+    public const MAX_SIZE = 2147483647;
+
+    public const MIN_SIZE = 0;
+
     /**
      * The lifetime of the request in minutes.
      *
      * @var int
      */
-    protected $lifetime = 2;
+    protected $lifetime = self::LIFETIME;
 
     /**
      * The maximum file size in bytes.
      *
      * @var int
      */
-    protected $maxSize = 2147483647;
+    protected $maxSize = self::MAX_SIZE;
 
     /**
      * The minimum file size in bytes.
      *
      * @var int
      */
-    protected $minSize = 0;
+    protected $minSize = self::MIN_SIZE;
 
     /**
      * The accepted file mime types.
@@ -145,7 +151,7 @@ trait ValidatesUpload
         $types = is_array($types) ? $types : func_get_args();
 
         $types = array_map(
-            static fn ($type) => mb_rtrim(mb_strtolower(mb_trim($type, ' *')), '/'),
+            static fn ($type) => rtrim(mb_strtolower(trim($type, ' *')), '/'),
             $types
         );
 
@@ -209,7 +215,7 @@ trait ValidatesUpload
         $extensions = is_array($extensions) ? $extensions : func_get_args();
 
         $extensions = array_map(
-            static fn ($ext) => mb_strtolower(mb_trim($ext, ' .')),
+            static fn ($ext) => mb_strtolower(trim($ext, ' .')),
             $extensions
         );
 

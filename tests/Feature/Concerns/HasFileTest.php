@@ -2,68 +2,76 @@
 
 declare(strict_types=1);
 
-use Honed\Core\Concerns\Evaluable;
 use Honed\Upload\Concerns\HasFile;
-use Honed\Upload\Contracts\ShouldAnonymize;
-use Workbench\App\Uploads\AvatarUpload;
+use Honed\Upload\Contracts\ShouldBeUuid;
+use Honed\Upload\Exceptions\FileNotSetException;
+use Honed\Upload\File;
+use Honed\Upload\Upload;
 
 beforeEach(function () {
-    $this->test = new class()
-    {
-        use Evaluable;
-        use HasFile;
-    };
-
-    $this->upload = AvatarUpload::make();
-});
-
-it('has disk', function () {
-    expect($this->test)
-        ->getDisk()->toBe(config('upload.disk'))
-        ->disk('r2')->toBe($this->test)
-        ->getDisk()->toBe('r2');
-});
-
-it('has location', function () {
-    expect($this->test)
-        ->getLocation()->toBeNull()
-        ->location('test')->toBe($this->test)
-        ->getLocation()->toBe('test');
-
-    expect($this->upload)
-        ->getLocation()->toBe('avatars');
+    $this->upload = Upload::make();
 });
 
 it('has name', function () {
-    expect($this->test)
+    expect($this->upload)
         ->getName()->toBeNull()
-        ->name('test')->toBe($this->test)
-        ->getName()->toBe('test');
+        ->name('test')->toBe($this->upload)
+        ->getName()->toBe('test')
+        ->name(fn ($name) => $name)->toBe($this->upload)
+        ->getName()->toBeInstanceOf(Closure::class);
 });
 
-it('anonymizes', function () {
-    expect($this->test)
-        ->isAnonymized()->toBeFalse()
-        ->anonymize()->toBe($this->test)
-        ->isAnonymized()->toBeTrue()
-        ->isAnonymizedByDefault()->toBeFalse();
+it('can be uuid', function () {
+    expect($this->upload)
+        ->isUuid()->toBeFalse()
+        ->uuid()->toBe($this->upload)
+        ->isUuid()->toBeTrue();
+});
 
-    $test = new class() implements ShouldAnonymize
+it('can be uuid via contract', function () {
+    expect(new class() implements ShouldBeUuid
     {
         use HasFile;
-
-        public function __construct() {}
-    };
-
-    expect($test)
-        ->isAnonymized()->toBeTrue();
+    })->isUuid()->toBeTrue();
 });
 
-it('gets folder', function (string $location, ?string $expected) {
-    expect($this->test)
-        ->getFolder($location)->toBe($expected);
-})->with([
-    ['test.txt', null],
-    ['parent/test.txt', 'parent'],
-    ['root/grandparent/parent/test.txt', 'parent'],
-]);
+it('can have path', function () {
+    expect($this->upload)
+        ->getPathCallback()->toBeNull()
+        ->path(fn ($path) => $path)->toBe($this->upload)
+        ->getPathCallback()->toBeInstanceOf(Closure::class);
+});
+
+describe('file', function () {
+    beforeEach(function () {
+        $src = [
+            'name' => 'test',
+            'extension' => 'test',
+            'type' => 'test',
+            'size' => 100,
+            'meta' => [],
+        ];
+
+        $this->file = File::from($src);
+    });
+
+    it('sets file', function () {
+        $this->upload->setFile($this->file);
+
+        expect($this->upload)
+            ->getFile()->toBeInstanceOf(File::class);
+    });
+
+    it('errors when no file is set', function () {
+        $this->upload->getFile();
+    })->throws(FileNotSetException::class);
+
+    it('sets path', function () {
+        $this->upload
+            ->path(fn (File $file) => 'test'.$file->getFilename())
+            ->setFile($this->file);
+
+        expect($this->upload)
+            ->getFile()->getPath()->toBe('test'.$this->file->getFilename());
+    });
+});

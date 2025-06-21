@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Honed\Upload;
 
+use Honed\Core\Concerns\HasPipeline;
 use Honed\Core\Concerns\HasRequest;
 use Honed\Core\Primitive;
 use Honed\Upload\Exceptions\PresignNotGeneratedException;
@@ -21,8 +22,15 @@ class Upload extends Primitive implements Responsable
     use Concerns\HasRules;
     use Concerns\InteractsWithS3;
     use Concerns\ValidatesUpload;
+    use HasPipeline;
     use HasRequest;
-    // use HasPipeline;
+
+    /**
+     * The identifier to use for evaluation.
+     *
+     * @var string
+     */
+    protected $evaluationIdentifier = 'upload';
 
     /**
      * Create a new upload instance.
@@ -32,6 +40,18 @@ class Upload extends Primitive implements Responsable
         parent::__construct();
 
         $this->request($request);
+    }
+
+    /**
+     * Provide the instance with any necessary setup.
+     *
+     * @return void
+     */
+    protected function setUp()
+    {
+        parent::setUp();
+
+        $this->definition($this);
     }
 
     /**
@@ -71,14 +91,14 @@ class Upload extends Primitive implements Responsable
     }
 
     /**
-     * Use the upload configuration to build the message.
+     * Get the message for the upload file input.
      *
      * @return string
      */
     public function message()
     {
         return $this->getMessage(
-            $this->getFile()->getSize(),
+            $this->getMaxSize(),
             $this->getExtensions(),
             $this->getMimeTypes()
         );
@@ -149,6 +169,11 @@ class Upload extends Primitive implements Responsable
         return $upload;
     }
 
+    /**
+     * Get the pipes to be used.
+     *
+     * @return array<int,class-string<\Honed\Core\Pipe<self>>>
+     */
     protected function pipes()
     {
         return [
@@ -184,6 +209,7 @@ class Upload extends Primitive implements Responsable
     protected function resolveDefaultClosureDependencyForEvaluationByType($parameterType)
     {
         return match ($parameterType) {
+            UploadRule::class => [$this->getRule()],
             File::class => [$this->getFile()],
             default => parent::resolveDefaultClosureDependencyForEvaluationByType($parameterType),
         };

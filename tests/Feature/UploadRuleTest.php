@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 use Honed\Upload\UploadRule;
 
-it('makes', function () {
-    expect(UploadRule::make())
-        ->toBeInstanceOf(UploadRule::class);
+beforeEach(function () {
+    $this->rule = UploadRule::make();
 });
 
 it('matches', function () {
-    expect(UploadRule::make()->mimes('video')->extensions('MP4'))
+    expect($this->rule->mimes('video')->extensions('MP4'))
         ->isMatching('image/png', 'png')->toBeFalse()
         ->isMatching('video/mp4', 'png')->toBeTrue()
         ->isMatching('image/png', 'mp4')->toBeTrue();

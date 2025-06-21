@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace Honed\Upload\Pipes;
 
+use Honed\Core\Pipe;
 use Honed\Upload\UploadRule;
 use Illuminate\Support\Arr;
 
 /**
- * @extends \Honed\Upload\Pipes\Pipe<\Honed\Upload\Upload>
+ * @extends \Honed\Core\Pipe<\Honed\Upload\Upload>
  */
 class CreateRules extends Pipe
 {

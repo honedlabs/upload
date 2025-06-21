@@ -12,7 +12,7 @@ beforeEach(function () {
 it('publishes stubs', function () {
     $this->artisan('vendor:publish', [
         '--provider' => UploadServiceProvider::class,
-        '--tag' => 'stubs',
+        '--tag' => 'upload-stubs',
     ])->assertSuccessful();
 
     $path = base_path('stubs/*.stub');

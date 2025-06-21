@@ -4,25 +4,35 @@ declare(strict_types=1);
 
 namespace Workbench\App\Uploads;
 
+use Honed\Upload\File;
 use Honed\Upload\Upload;
 
 final class AvatarUpload extends Upload
 {
     /**
-     * Provide the upload with any necessary setup.
+     * Get the message for the upload file input.
      *
-     * @return void
+     * @return string
      */
-    public function setUp()
+    public function message()
     {
-        $this->max(1024 * 1024 * 2); // 2MB
+        return 'The avatar must be a valid image (JPEG or PNG) and less than 2MB.';
     }
 
     /**
-     * {@inheritdoc}
+     * Define the settings for the upload.
+     *
+     * @param  $this  $upload
+     * @return $this
      */
-    public function locate()
+    protected function definition(Upload $upload): Upload
     {
-        return 'avatars';
+        return $upload
+            ->publicRead()
+            ->maxSize(2 * 1024 * 1024)
+            ->mimes(['image/jpeg', 'image/png'])
+            ->extensions(['jpg', 'jpeg', 'png'])
+            ->path(fn (File $file) => 'avatars/'.$file->getFilename())
+            ->respondWith(fn (File $file) => $file->getPath());
     }
 }
