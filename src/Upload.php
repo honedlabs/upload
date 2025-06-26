@@ -15,6 +15,9 @@ use Illuminate\Contracts\Support\Responsable;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
+/**
+ * @extends \Honed\Core\Primitive<string, mixed>
+ */
 class Upload extends Primitive implements Responsable
 {
     use Concerns\BridgesSerialization;
@@ -40,18 +43,6 @@ class Upload extends Primitive implements Responsable
         parent::__construct();
 
         $this->request($request);
-    }
-
-    /**
-     * Provide the instance with any necessary setup.
-     *
-     * @return void
-     */
-    protected function setUp()
-    {
-        parent::setUp();
-
-        $this->definition($this);
     }
 
     /**
@@ -130,22 +121,6 @@ class Upload extends Primitive implements Responsable
     }
 
     /**
-     * Get the instance as an array.
-     *
-     * @return array<string,mixed>
-     */
-    public function toArray()
-    {
-        return [
-            'multiple' => $this->isMultiple(),
-            'message' => $this->message(),
-            'extensions' => $this->getExtensions(),
-            'mimes' => $this->getMimeTypes(),
-            'size' => $this->getMaxSize(),
-        ];
-    }
-
-    /**
      * Create a response for the upload.
      *
      * @param  Request  $request
@@ -167,6 +142,22 @@ class Upload extends Primitive implements Responsable
     protected function definition(self $upload): self
     {
         return $upload;
+    }
+
+    /**
+     * Get the representation of the instance.
+     *
+     * @return array<string, mixed>
+     */
+    protected function representation(): array
+    {
+        return [
+            'multiple' => $this->isMultiple(),
+            'message' => $this->message(),
+            'extensions' => $this->getExtensions(),
+            'mimes' => $this->getMimeTypes(),
+            'size' => $this->getMaxSize(),
+        ];
     }
 
     /**
