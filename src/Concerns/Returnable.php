@@ -15,7 +15,7 @@ trait Returnable
 
     /**
      * Set the data to return with the presign response.
-     * 
+     *
      * @param  mixed  $data
      * @return $this
      */
