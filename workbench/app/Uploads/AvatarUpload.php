@@ -33,6 +33,6 @@ final class AvatarUpload extends Upload
             ->mimes(['image/jpeg', 'image/png'])
             ->extensions(['jpg', 'jpeg', 'png'])
             ->path(fn (File $file) => 'avatars/'.$file->getFilename())
-            ->respondWith(fn (File $file) => $file->getPath());
+            ->returning(fn (File $file) => $file->getPath());
     }
 }

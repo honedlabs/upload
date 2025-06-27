@@ -16,13 +16,6 @@ trait BridgesSerialization
     protected $multiple = false;
 
     /**
-     * The additional data to return with the presign response.
-     *
-     * @var mixed
-     */
-    protected $response = null;
-
-    /**
      * Set whether the upload accepts multiple files.
      *
      * @param  bool  $multiple
@@ -43,29 +36,6 @@ trait BridgesSerialization
     public function isMultiple()
     {
         return $this->multiple;
-    }
-
-    /**
-     * Set the data to return with the presign response.
-     *
-     * @param  mixed  $response
-     * @return $this
-     */
-    public function respondWith($response)
-    {
-        $this->response = $response;
-
-        return $this;
-    }
-
-    /**
-     * Get the data to return with the presign response.
-     *
-     * @return mixed
-     */
-    public function getResponse()
-    {
-        return $this->evaluate($this->response);
     }
 
     /**
@@ -130,7 +100,7 @@ trait BridgesSerialization
     protected function formatExtensions($extensions)
     {
         $formattedExtensions = array_map(
-            static fn (string $extension) => mb_strtoupper(mb_trim($extension)),
+            static fn (string $extension) => mb_strtoupper(trim($extension)),
             $extensions
         );
 
@@ -146,7 +116,7 @@ trait BridgesSerialization
     protected function formatMimeTypes($mimeTypes)
     {
         $formattedTypes = array_map(
-            static fn (string $mimeType) => mb_trim($mimeType, ' /'),
+            static fn (string $mimeType) => trim($mimeType, ' /'),
             $mimeTypes
         );
 

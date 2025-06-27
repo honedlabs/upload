@@ -129,7 +129,7 @@ trait HasFile
 
         $this->file->setPath();
 
-        /** @var string|null $path */
+        // @phpstan-ignore-next-line
         $path = $this->evaluate($this->path);
 
         if ($path) {

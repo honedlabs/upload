@@ -11,7 +11,9 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
 /**
- * @extends \Honed\Core\Pipe<\Honed\Upload\Upload>
+ * @template T of \Honed\Upload\Upload
+ *
+ * @extends \Honed\Core\Pipe<T>
  */
 class Validate extends Pipe
 {
@@ -20,26 +22,26 @@ class Validate extends Pipe
      *
      * @throws ValidationException
      */
-    public function run($instance)
+    public function run(): void
     {
-        $request = $instance->getRequest();
+        $request = $this->instance->getRequest();
 
         try {
-            $rules = $instance->getRule()?->createRules()
-                ?? $instance->createRules();
+            $rules = $this->instance->getRule()?->createRules()
+                ?? $this->instance->createRules();
 
             /** @var array{name:string,extension:string,type:string,size:int,meta:mixed} $validated */
             $validated = Validator::make(
                 $request->all(),
                 $rules,
                 [],
-                $instance->getAttributes(),
+                $this->instance->getAttributes(),
             )->validate();
 
-            $instance->setFile(File::from($validated));
+            $this->instance->setFile(File::from($validated));
 
         } catch (ValidationException $e) {
-            PresignFailed::dispatch($instance::class, $request);
+            PresignFailed::dispatch($this->instance::class, $request);
 
             throw $e;
         }

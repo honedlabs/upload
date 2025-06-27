@@ -9,32 +9,34 @@ use Honed\Core\Pipe;
 use Honed\Upload\Events\PresignCreated;
 
 /**
- * @extends \Honed\Core\Pipe<\Honed\Upload\Upload>
+ * @template T of \Honed\Upload\Upload
+ *
+ * @extends \Honed\Core\Pipe<T>
  */
 class Presign extends Pipe
 {
     /**
      * Run the pipe logic.
      */
-    public function run($instance)
+    public function run(): void
     {
-        $lifetime = $instance->getRule()?->getLifetime()
-            ?? $instance->getLifetime();
+        $lifetime = $this->instance->getRule()?->getLifetime()
+            ?? $this->instance->getLifetime();
 
-        $file = $instance->getFile();
+        $file = $this->instance->getFile();
 
-        $instance->setPresign(new PostObjectV4(
-            $instance->getClient(),
-            $instance->getBucket(),
-            $instance->getFormInputs($file->getPath()),
-            $instance->getOptions(
+        $this->instance->setPresign(new PostObjectV4(
+            $this->instance->getClient(),
+            $this->instance->getBucket(),
+            $this->instance->getFormInputs($file->getPath()),
+            $this->instance->getOptions(
                 $file->getPath(), $file->getMimeType(), $file->getSize()
             ),
-            $instance->formatLifetime($lifetime),
+            $this->instance->formatLifetime($lifetime),
         ));
 
         PresignCreated::dispatch(
-            $instance::class, $file, $instance->getDisk()
+            $this->instance::class, $file, $this->instance->getDisk()
         );
     }
 }

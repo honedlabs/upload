@@ -25,7 +25,7 @@ beforeEach(function () {
 });
 
 it('creates presign', function () {
-    $this->pipe->run($this->upload);
+    $this->pipe->instance($this->upload)->run();
 
     expect($this->upload)
         ->getPresign()->toBeInstanceOf(PostObjectV4::class);

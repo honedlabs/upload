@@ -4,9 +4,19 @@ declare(strict_types=1);
 
 namespace Honed\Upload;
 
+use Honed\Core\Concerns\HasLifecycleHooks;
 use Honed\Core\Concerns\HasPipeline;
 use Honed\Core\Concerns\HasRequest;
+use Honed\Core\Contracts\HooksIntoLifecycle;
+use Honed\Core\Pipes\CallsAfter;
+use Honed\Core\Pipes\CallsBefore;
 use Honed\Core\Primitive;
+use Honed\Upload\Concerns\BridgesSerialization;
+use Honed\Upload\Concerns\HasFile;
+use Honed\Upload\Concerns\HasRules;
+use Honed\Upload\Concerns\InteractsWithS3;
+use Honed\Upload\Concerns\Returnable;
+use Honed\Upload\Concerns\ValidatesUpload;
 use Honed\Upload\Exceptions\PresignNotGeneratedException;
 use Honed\Upload\Pipes\CreateRules;
 use Honed\Upload\Pipes\Presign;
@@ -18,15 +28,17 @@ use Illuminate\Validation\ValidationException;
 /**
  * @extends \Honed\Core\Primitive<string, mixed>
  */
-class Upload extends Primitive implements Responsable
+class Upload extends Primitive implements HooksIntoLifecycle, Responsable
 {
-    use Concerns\BridgesSerialization;
-    use Concerns\HasFile;
-    use Concerns\HasRules;
-    use Concerns\InteractsWithS3;
-    use Concerns\ValidatesUpload;
+    use BridgesSerialization;
+    use HasFile;
+    use HasLifecycleHooks;
     use HasPipeline;
     use HasRequest;
+    use HasRules;
+    use InteractsWithS3;
+    use ValidatesUpload;
+    use Returnable;
 
     /**
      * The identifier to use for evaluation.
@@ -116,7 +128,7 @@ class Upload extends Primitive implements Responsable
         return [
             'attributes' => $presign->getFormAttributes(),
             'inputs' => $presign->getFormInputs(),
-            'data' => $this->getResponse(),
+            'data' => $this->getReturn(),
         ];
     }
 
@@ -163,14 +175,16 @@ class Upload extends Primitive implements Responsable
     /**
      * Get the pipes to be used.
      *
-     * @return array<int,class-string<\Honed\Core\Pipe<self>>>
+     * @return array<int,class-string<\Honed\Core\Pipe>>
      */
     protected function pipes()
     {
         return [
+            CallsBefore::class,
             CreateRules::class,
             Validate::class,
             Presign::class,
+            CallsAfter::class,
         ];
     }
 

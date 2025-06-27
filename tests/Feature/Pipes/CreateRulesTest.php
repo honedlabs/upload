@@ -20,9 +20,9 @@ it('separates request name and extension', function () {
         'size' => 1024,
     ]);
 
-    $this->pipe->run(
-        $this->upload->request($request)
-    );
+    $this->upload->request($request);
+
+    $this->pipe->instance($this->upload)->run();
 
     expect($this->upload)
         ->getRule()->toBeNull()
@@ -40,9 +40,9 @@ it('separates request name and extension with null', function () {
         'size' => 1024,
     ]);
 
-    $this->pipe->run(
-        $this->upload->request($request)
-    );
+    $this->upload->request($request);
+
+    $this->pipe->instance($this->upload)->run();
 
     expect($this->upload)
         ->getRule()->toBeNull()
@@ -63,9 +63,9 @@ it('uses an upload rule', function () {
     $rule = UploadRule::make()
         ->extension('png');
 
-    $this->pipe->run(
-        $this->upload->request($request)->rule($rule)
-    );
+    $this->upload->request($request)->rule($rule);
+
+    $this->pipe->instance($this->upload)->run();
 
     expect($this->upload)
         ->getRule()->toBe($rule)

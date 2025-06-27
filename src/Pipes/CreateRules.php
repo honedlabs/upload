@@ -9,16 +9,18 @@ use Honed\Upload\UploadRule;
 use Illuminate\Support\Arr;
 
 /**
- * @extends \Honed\Core\Pipe<\Honed\Upload\Upload>
+ * @template T of \Honed\Upload\Upload
+ *
+ * @extends \Honed\Core\Pipe<T>
  */
 class CreateRules extends Pipe
 {
     /**
      * Run the pipe logic.
      */
-    public function run($instance)
+    public function run(): void
     {
-        $request = $instance->getRequest();
+        $request = $this->instance->getRequest();
 
         [$name, $ext] = $this->separate($request->input('name'));
 
@@ -26,9 +28,9 @@ class CreateRules extends Pipe
 
         $type = $request->input('type');
 
-        $instance->setRule(
+        $this->instance->setRule(
             Arr::first(
-                $instance->getRules(),
+                $this->instance->getRules(),
                 static fn (UploadRule $rule) => $rule->isMatching($type, $ext),
             )
         );
