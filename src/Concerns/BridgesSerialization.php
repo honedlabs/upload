@@ -100,7 +100,7 @@ trait BridgesSerialization
     protected function formatExtensions($extensions)
     {
         $formattedExtensions = array_map(
-            static fn (string $extension) => mb_strtoupper(trim($extension)),
+            static fn (string $extension) => mb_strtoupper(mb_trim($extension)),
             $extensions
         );
 
@@ -116,7 +116,7 @@ trait BridgesSerialization
     protected function formatMimeTypes($mimeTypes)
     {
         $formattedTypes = array_map(
-            static fn (string $mimeType) => trim($mimeType, ' /'),
+            static fn (string $mimeType) => mb_trim($mimeType, ' /'),
             $mimeTypes
         );
 
