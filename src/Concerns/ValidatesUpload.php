@@ -12,9 +12,9 @@ use function array_map;
 use function implode;
 use function in_array;
 use function mb_strtolower;
-use function mb_trim;
 use function sprintf;
 use function str_starts_with;
+use function trim;
 
 trait ValidatesUpload
 {
@@ -151,7 +151,7 @@ trait ValidatesUpload
         $types = is_array($types) ? $types : func_get_args();
 
         $types = array_map(
-            static fn ($type) => mb_rtrim(mb_strtolower(mb_trim($type, ' *')), '/'),
+            static fn ($type) => rtrim(mb_strtolower(trim($type, ' *')), '/'),
             $types
         );
 
@@ -215,7 +215,7 @@ trait ValidatesUpload
         $extensions = is_array($extensions) ? $extensions : func_get_args();
 
         $extensions = array_map(
-            static fn ($ext) => mb_strtolower(mb_trim($ext, ' .')),
+            static fn ($ext) => mb_strtolower(trim($ext, ' .')),
             $extensions
         );
 
