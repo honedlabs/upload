@@ -19,7 +19,7 @@
     ],
     "require": {
         "php": "^8.2",
-        "honed/core": "^0.39.0",
+        "honed/core": "^0.42.0",
         "illuminate/contracts": "^11.0||^12.0",
         "illuminate/support": "^11.0||^12.0",
         "league/flysystem-aws-s3-v3": "^3.0",

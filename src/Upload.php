@@ -175,10 +175,11 @@ class Upload extends Primitive implements HooksIntoLifecycle, Responsable
     /**
      * Get the pipes to be used.
      *
-     * @return array<int,class-string<\Honed\Core\Pipe>>
+     * @return array<int,class-string<\Honed\Core\Pipe<self>>>
      */
-    protected function pipes()
+    protected function pipes(): array
     {
+        // @phpstan-ignore-next-line
         return [
             CallsBefore::class,
             CreateRules::class,
@@ -191,10 +192,9 @@ class Upload extends Primitive implements HooksIntoLifecycle, Responsable
     /**
      * Provide a selection of default dependencies for evaluation by name.
      *
-     * @param  string  $parameterName
      * @return array<int, mixed>
      */
-    protected function resolveDefaultClosureDependencyForEvaluationByName($parameterName)
+    protected function resolveDefaultClosureDependencyForEvaluationByName(string $parameterName): array
     {
         return match ($parameterName) {
             'file' => [$this->getFile()],
@@ -211,7 +211,7 @@ class Upload extends Primitive implements HooksIntoLifecycle, Responsable
      * @param  class-string  $parameterType
      * @return array<int, mixed>
      */
-    protected function resolveDefaultClosureDependencyForEvaluationByType($parameterType)
+    protected function resolveDefaultClosureDependencyForEvaluationByType(string $parameterType): array
     {
         return match ($parameterType) {
             UploadRule::class => [$this->getRule()],
