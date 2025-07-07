@@ -14,12 +14,11 @@ beforeEach(function () {
     $this->upload = Upload::make()
         ->mimes('image/')
         ->extensions('png')
-        ->minSize(1024) // 1 KB
-        ->maxSize(1024 * 2) // 2KB
+        ->minSize(1024)
+        ->maxSize(1024 * 2)
         ->uuid();
 
     Event::fake();
-
 });
 
 it('invalidates type', function () {

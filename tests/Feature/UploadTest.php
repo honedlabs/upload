@@ -64,7 +64,8 @@ describe('evaluation', function () {
     it('typed dependencies', function ($closure, $class) {
         expect($this->upload->evaluate($closure))->toBeInstanceOf($class);
     })->with([
-        fn () => [fn (File $arg) => $arg, File::class],
         fn () => [fn (UploadRule $arg) => $arg, UploadRule::class],
+        fn () => [fn (File $arg) => $arg, File::class],
+        fn () => [fn (Request $arg) => $arg, Request::class],
     ]);
 });

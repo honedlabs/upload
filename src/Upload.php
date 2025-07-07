@@ -14,15 +14,18 @@ use Honed\Core\Primitive;
 use Honed\Upload\Concerns\BridgesSerialization;
 use Honed\Upload\Concerns\HasFile;
 use Honed\Upload\Concerns\HasRules;
+use Honed\Upload\Concerns\HasValidatedInput;
 use Honed\Upload\Concerns\InteractsWithS3;
 use Honed\Upload\Concerns\Returnable;
 use Honed\Upload\Concerns\ValidatesUpload;
 use Honed\Upload\Exceptions\PresignNotGeneratedException;
 use Honed\Upload\Pipes\CreateRules;
 use Honed\Upload\Pipes\Presign;
+use Honed\Upload\Pipes\SetFile;
 use Honed\Upload\Pipes\Validate;
 use Illuminate\Contracts\Support\Responsable;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\App;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -36,6 +39,7 @@ class Upload extends Primitive implements HooksIntoLifecycle, Responsable
     use HasPipeline;
     use HasRequest;
     use HasRules;
+    use HasValidatedInput;
     use InteractsWithS3;
     use Returnable;
     use ValidatesUpload;
@@ -146,6 +150,14 @@ class Upload extends Primitive implements HooksIntoLifecycle, Responsable
     }
 
     /**
+     * Resolve the upload instance from the container.
+     */
+    protected function resolve(): void
+    {
+        self::__construct(App::make(Request::class));
+    }
+
+    /**
      * Define the settings for the upload.
      *
      * @param  $this  $upload
@@ -184,6 +196,7 @@ class Upload extends Primitive implements HooksIntoLifecycle, Responsable
             CallsBefore::class,
             CreateRules::class,
             Validate::class,
+            SetFile::class,
             Presign::class,
             CallsAfter::class,
         ];
@@ -197,9 +210,11 @@ class Upload extends Primitive implements HooksIntoLifecycle, Responsable
     protected function resolveDefaultClosureDependencyForEvaluationByName(string $parameterName): array
     {
         return match ($parameterName) {
+            'request' => [$this->getRequest()],
             'file' => [$this->getFile()],
             'bucket' => [$this->getBucket()],
             'disk' => [$this->getDisk()],
+            'validated' => [$this->getValidated()],
             'rule' => [$this->getRule()],
             default => parent::resolveDefaultClosureDependencyForEvaluationByName($parameterName),
         };
@@ -216,6 +231,7 @@ class Upload extends Primitive implements HooksIntoLifecycle, Responsable
         return match ($parameterType) {
             UploadRule::class => [$this->getRule()],
             File::class => [$this->getFile()],
+            Request::class => [$this->getRequest()],
             default => parent::resolveDefaultClosureDependencyForEvaluationByType($parameterType),
         };
     }

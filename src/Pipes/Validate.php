@@ -6,7 +6,6 @@ namespace Honed\Upload\Pipes;
 
 use Honed\Core\Pipe;
 use Honed\Upload\Events\PresignFailed;
-use Honed\Upload\File;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
@@ -38,8 +37,7 @@ class Validate extends Pipe
                 $this->instance->getAttributes(),
             )->validate();
 
-            $this->instance->setFile(File::from($validated));
-
+            $this->instance->setValidated($validated);
         } catch (ValidationException $e) {
             PresignFailed::dispatch($this->instance::class, $request);
 
