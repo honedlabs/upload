@@ -63,21 +63,16 @@ class Upload extends Primitive implements HooksIntoLifecycle, Responsable
 
     /**
      * Create a new upload instance.
-     *
-     * @return static
      */
-    public static function make()
+    public static function make(): static
     {
         return resolve(static::class);
     }
 
     /**
      * Create a new upload instance for the given disk.
-     *
-     * @param  string  $disk
-     * @return static
      */
-    public static function into($disk)
+    public static function into(string $disk): static
     {
         return static::make()->disk($disk);
     }
@@ -87,7 +82,7 @@ class Upload extends Primitive implements HooksIntoLifecycle, Responsable
      *
      * @return array<string,string>
      */
-    public function getAttributes()
+    public function getAttributes(): array
     {
         return [
             'name' => 'file name',
@@ -121,6 +116,8 @@ class Upload extends Primitive implements HooksIntoLifecycle, Responsable
      */
     public function create()
     {
+        $this->define();
+        
         $this->build();
 
         $presign = $this->getPresign();
@@ -158,23 +155,14 @@ class Upload extends Primitive implements HooksIntoLifecycle, Responsable
     }
 
     /**
-     * Define the settings for the upload.
-     *
-     * @param  $this  $upload
-     * @return $this
-     */
-    protected function definition(self $upload): self
-    {
-        return $upload;
-    }
-
-    /**
      * Get the representation of the instance.
      *
      * @return array<string, mixed>
      */
     protected function representation(): array
     {
+        $this->define();
+
         return [
             'multiple' => $this->isMultiple(),
             'message' => $this->message(),

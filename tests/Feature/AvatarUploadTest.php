@@ -8,6 +8,8 @@ use Workbench\App\Uploads\AvatarUpload;
 
 beforeEach(function () {
     $this->upload = AvatarUpload::make();
+
+    $this->upload->define();
 });
 
 it('has definition', function () {

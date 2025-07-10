@@ -7,7 +7,7 @@ namespace Workbench\App\Uploads;
 use Honed\Upload\File;
 use Honed\Upload\Upload;
 
-final class AvatarUpload extends Upload
+class AvatarUpload extends Upload
 {
     /**
      * Get the message for the upload file input.
@@ -20,14 +20,13 @@ final class AvatarUpload extends Upload
     }
 
     /**
-     * Define the settings for the upload.
+     * Define the upload.
      *
-     * @param  $this  $upload
      * @return $this
      */
-    protected function definition(Upload $upload): Upload
+    protected function definition(): static
     {
-        return $upload
+        return $this
             ->publicRead()
             ->maxSize(2 * 1024 * 1024)
             ->mimes(['image/jpeg', 'image/png'])
