@@ -151,7 +151,7 @@ class Upload extends Primitive implements HooksIntoLifecycle, Responsable
      */
     protected function resolve(): void
     {
-        self::__construct(App::make(Request::class));
+        $this->request(App::make(Request::class));
     }
 
     /**
