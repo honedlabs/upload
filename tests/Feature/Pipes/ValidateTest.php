@@ -24,7 +24,7 @@ beforeEach(function () {
 it('invalidates type', function () {
     $request = presignRequest('test.png', 'audio/mp3', 1024);
 
-    $this->pipe->instance($this->upload->request($request))->run();
+    $this->pipe->run($this->upload->request($request));
 
     Event::assertDispatched(PresignFailed::class);
 
@@ -35,7 +35,7 @@ it('invalidates extension', function () {
 
     $this->upload->request($request);
 
-    $this->pipe->instance($this->upload)->run();
+    $this->pipe->run($this->upload);
 
     Event::assertDispatched(PresignFailed::class);
 
@@ -46,7 +46,7 @@ it('invalidates min size', function () {
 
     $this->upload->request($request);
 
-    $this->pipe->instance($this->upload)->run();
+    $this->pipe->run($this->upload);
 
     Event::assertDispatched(PresignFailed::class);
 
@@ -55,7 +55,7 @@ it('invalidates min size', function () {
 it('invalidates max size', function () {
     $request = presignRequest('test.png', 'image/png', 1024 * 2 + 1);
 
-    $this->pipe->instance($this->upload->request($request))->run();
+    $this->pipe->run($this->upload->request($request));
 
     Event::assertDispatched(PresignFailed::class);
 
@@ -66,7 +66,7 @@ it('validates type', function () {
 
     $this->upload->request($request);
 
-    $this->pipe->instance($this->upload)->run();
+    $this->pipe->run($this->upload);
 
     Event::assertNotDispatched(PresignFailed::class);
 });

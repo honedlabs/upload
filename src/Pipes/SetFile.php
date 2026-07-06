@@ -6,6 +6,7 @@ namespace Honed\Upload\Pipes;
 
 use Honed\Core\Pipe;
 use Honed\Upload\File;
+use Honed\Upload\Upload;
 
 /**
  * @template T of \Honed\Upload\Upload
@@ -17,8 +18,8 @@ class SetFile extends Pipe
     /**
      * Run the pipe logic.
      */
-    public function run(): void
+    public function run(Upload $instance): void
     {
-        $this->instance->setFile(File::from($this->instance->getValidated()));
+        $instance->setFile(File::from($instance->getValidated()));
     }
 }

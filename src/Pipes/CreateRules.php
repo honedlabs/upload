@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Honed\Upload\Pipes;
 
 use Honed\Core\Pipe;
+use Honed\Upload\Upload;
 use Honed\Upload\UploadRule;
 use Illuminate\Support\Arr;
 
@@ -18,9 +19,9 @@ class CreateRules extends Pipe
     /**
      * Run the pipe logic.
      */
-    public function run(): void
+    public function run(Upload $instance): void
     {
-        $request = $this->instance->getRequest();
+        $request = $instance->getRequest();
 
         [$name, $ext] = $this->separate($request->input('name'));
 
@@ -28,9 +29,9 @@ class CreateRules extends Pipe
 
         $type = $request->input('type');
 
-        $this->instance->setRule(
+        $instance->setRule(
             Arr::first(
-                $this->instance->getRules(),
+                $instance->getRules(),
                 static fn (UploadRule $rule) => $rule->isMatching($type, $ext),
             )
         );

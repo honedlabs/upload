@@ -21,7 +21,7 @@ beforeEach(function () {
 });
 
 it('sets file', function () {
-    $this->pipe->through($this->upload);
+    $this->pipe->run($this->upload);
 
     expect($this->upload->getFile())
         ->toBeInstanceOf(File::class)

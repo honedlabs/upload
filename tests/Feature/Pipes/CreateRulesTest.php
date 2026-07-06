@@ -22,7 +22,7 @@ it('separates request name and extension', function () {
 
     $this->upload->request($request);
 
-    $this->pipe->instance($this->upload)->run();
+    $this->pipe->run($this->upload);
 
     expect($this->upload)
         ->getRule()->toBeNull()
@@ -42,7 +42,7 @@ it('separates request name and extension with null', function () {
 
     $this->upload->request($request);
 
-    $this->pipe->instance($this->upload)->run();
+    $this->pipe->run($this->upload);
 
     expect($this->upload)
         ->getRule()->toBeNull()
@@ -65,7 +65,7 @@ it('uses an upload rule', function () {
 
     $this->upload->request($request)->rule($rule);
 
-    $this->pipe->instance($this->upload)->run();
+    $this->pipe->run($this->upload);
 
     expect($this->upload)
         ->getRule()->toBe($rule)

@@ -7,36 +7,37 @@ namespace Honed\Upload\Pipes;
 use Aws\S3\PostObjectV4;
 use Honed\Core\Pipe;
 use Honed\Upload\Events\PresignCreated;
+use Honed\Upload\Upload;
 
 /**
  * @template T of \Honed\Upload\Upload
  *
- * @extends \Honed\Core\Pipe<T>
+ * @extends \Honed\Core\Pipe<\Honed\Upload\Upload>
  */
 class Presign extends Pipe
 {
     /**
      * Run the pipe logic.
      */
-    public function run(): void
+    public function run(Upload $instance): void
     {
-        $lifetime = $this->instance->getRule()?->getLifetime()
-            ?? $this->instance->getLifetime();
+        $lifetime = $instance->getRule()?->getLifetime()
+            ?? $instance->getLifetime();
 
-        $file = $this->instance->getFile();
+        $file = $instance->getFile();
 
-        $this->instance->setPresign(new PostObjectV4(
-            $this->instance->getClient(),
-            $this->instance->getBucket(),
-            $this->instance->getFormInputs($file->getPath()),
-            $this->instance->getOptions(
+        $instance->setPresign(new PostObjectV4(
+            $instance->getClient(),
+            $instance->getBucket(),
+            $instance->getFormInputs($file->getPath()),
+            $instance->getOptions(
                 $file->getPath(), $file->getMimeType(), $file->getSize()
             ),
-            $this->instance->formatLifetime($lifetime),
+            $instance->formatLifetime($lifetime),
         ));
 
         PresignCreated::dispatch(
-            $this->instance::class, $file, $this->instance->getDisk()
+            $instance::class, $file, $instance->getDisk()
         );
     }
 }

@@ -175,7 +175,7 @@ class Upload extends Primitive implements HooksIntoLifecycle, Responsable
     /**
      * Get the pipes to be used.
      *
-     * @return array<int,class-string<\Honed\Core\Pipe<self>>>
+     * @return list<class-string<\Honed\Core\Pipe<$this>>>
      */
     protected function pipes(): array
     {

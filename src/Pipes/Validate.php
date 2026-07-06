@@ -6,6 +6,7 @@ namespace Honed\Upload\Pipes;
 
 use Honed\Core\Pipe;
 use Honed\Upload\Events\PresignFailed;
+use Honed\Upload\Upload;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
@@ -21,25 +22,25 @@ class Validate extends Pipe
      *
      * @throws ValidationException
      */
-    public function run(): void
+    public function run(Upload $instance): void
     {
-        $request = $this->instance->getRequest();
+        $request = $instance->getRequest();
 
         try {
-            $rules = $this->instance->getRule()?->createRules()
-                ?? $this->instance->createRules();
+            $rules = $instance->getRule()?->createRules()
+                ?? $instance->createRules();
 
             /** @var array{name:string,extension:string,type:string,size:int,meta:mixed} $validated */
             $validated = Validator::make(
                 $request->all(),
                 $rules,
                 [],
-                $this->instance->getAttributes(),
+                $instance->getAttributes(),
             )->validate();
 
-            $this->instance->setValidated($validated);
+            $instance->setValidated($validated);
         } catch (ValidationException $e) {
-            PresignFailed::dispatch($this->instance::class, $request);
+            PresignFailed::dispatch($instance::class, $request);
 
             throw $e;
         }
