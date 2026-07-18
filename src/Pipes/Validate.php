@@ -27,8 +27,15 @@ class Validate extends Pipe
         $request = $instance->getRequest();
 
         try {
-            $rules = $instance->getRule()?->createRules()
-                ?? $instance->createRules();
+            $rule = $instance->getRule();
+
+            if ($rule === null && filled($instance->getRules())) {
+                throw ValidationException::withMessages([
+                    'type' => [__('upload::messages.type')],
+                ]);
+            }
+
+            $rules = $rule?->createRules() ?? $instance->createRules();
 
             /** @var array{name:string,extension:string,type:string,size:int,meta:mixed} $validated */
             $validated = Validator::make(
